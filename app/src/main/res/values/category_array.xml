@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="category_drawable_array">
+        <item>@drawable/cat_all</item>
+        <item>@drawable/cat_business</item>
+        <item>@drawable/cat_entertainment</item>
+        <item>@drawable/cat_general</item>
+        <item>@drawable/cat_gaming</item>
+        <item>@drawable/cat_music</item>
+        <item>@drawable/cat_politics</item>
+        <item>@drawable/cat_science</item>
+        <item>@drawable/cat_sports</item>
+        <item>@drawable/cat_tech</item>
+    </array>
+
+
+    <array name="category_title_array">
+        <item>@string/cat_all</item>
+        <item>@string/cat_business</item>
+        <item>@string/cat_entertainment</item>
+        <item>@string/cat_general</item>
+        <item>@string/cat_gaming</item>
+        <item>@string/cat_music</item>
+        <item>@string/cat_politics</item>
+        <item>@string/cat_science</item>
+        <item>@string/cat_sports</item>
+        <item>@string/cat_tech</item>
+    </array>
+
+</resources>
