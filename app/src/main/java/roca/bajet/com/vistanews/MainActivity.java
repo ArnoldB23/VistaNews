@@ -31,11 +31,26 @@ public class MainActivity extends AppCompatActivity {
 
     private CategoryAdapter mCategoryAdapter;
     private SourceAdapter mSourceAdapter;
+    private RecyclerItemClickListener mCategoryItemClickListener;
     private RecyclerView mCategoryRecyclerView;
     private RecyclerView mSourcesRecyclerView;
     private NewsService mNewsService;
     private static final String LOG_TAG = "MainActivity";
     private Realm mRealm;
+
+    private String [] categoryParamNames = {
+            "",
+            "business",
+            "entertainment",
+            "general",
+            "gaming",
+            "music",
+            "politics",
+            "science-and-nature",
+            "sport",
+            "technology"
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,15 +73,43 @@ public class MainActivity extends AppCompatActivity {
         }
         typedDrawableArray.recycle();
         mCategoryAdapter = new CategoryAdapter(catTitles, catDrawables);
-
         mCategoryRecyclerView = (RecyclerView) findViewById(R.id.category_recyclerview);
-
         LinearLayoutManager lm = new LinearLayoutManager(this);
         lm.setOrientation(LinearLayoutManager.HORIZONTAL);
+        mCategoryRecyclerView.setHasFixedSize(true);
         mCategoryRecyclerView.setLayoutManager(lm);
+        mCategoryItemClickListener = new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
+
+            private int mSelectedPosition = -1;
+
+            @Override
+            public void onItemClick(View view, int position) {
+
+                if (mSelectedPosition > -1 || mSelectedPosition != position)
+                {
+
+                    CatViewHolder previousVH = (CatViewHolder)mCategoryRecyclerView.findViewHolderForAdapterPosition(mSelectedPosition);
+
+                    if (previousVH != null)
+                    {
+                        previousVH.mCatImageView.setSelected(false);
+                    }
+
+                }
+
+                mSelectedPosition = position;
+                RealmResults<RealmSource> results = mRealm.where(RealmSource.class).contains("category", categoryParamNames[position]).findAll();
+                mSourceAdapter.resetAnimation();
+                mSourceAdapter.updateData(results);
 
 
+            }
+        });
+
+
+        mCategoryRecyclerView.addOnItemTouchListener(mCategoryItemClickListener);
         mCategoryRecyclerView.setAdapter(mCategoryAdapter);
+
 
         SnapHelper snapHelper = new StartSnapHelper();
         snapHelper.attachToRecyclerView(mCategoryRecyclerView);
@@ -78,11 +121,15 @@ public class MainActivity extends AppCompatActivity {
 
         mSourcesRecyclerView = (RecyclerView) findViewById(R.id.source_recyclerview);
         GridLayoutManager gm = new GridLayoutManager(this, 4);
+        mSourcesRecyclerView.setHasFixedSize(true);
         mSourcesRecyclerView.setLayoutManager(gm);
 
 
 
+
         mRealm = Realm.getDefaultInstance();
+
+
 
         RealmResults<RealmSource> results = mRealm.where(RealmSource.class).findAllAsync();
         mSourceAdapter = new SourceAdapter(MainActivity.this, results, true);
@@ -190,11 +237,13 @@ public class MainActivity extends AppCompatActivity {
     public class CategoryAdapter extends RecyclerView.Adapter<CatViewHolder> {
         private String[] mCatTitles;
         private Drawable[] mCatDrawables;
+        public int mSelectedPosition = 0;
 
 
         public CategoryAdapter(String[] titles, Drawable[] resourceIds) {
             mCatTitles = titles;
             mCatDrawables = resourceIds;
+
         }
 
         @Override
@@ -202,15 +251,32 @@ public class MainActivity extends AppCompatActivity {
 
             View view = getLayoutInflater().inflate(R.layout.category_item, parent, false);
             CatViewHolder vh = new CatViewHolder(view);
+
+            vh.setOnCatViewHolderClick(new OnCatViewHolderClick() {
+                @Override
+                public void onClick(int pos) {
+                    mSelectedPosition = pos;
+                    notifyDataSetChanged();
+                }
+            });
+
             return vh;
         }
 
         @Override
         public void onBindViewHolder(CatViewHolder holder, int position) {
             holder.mCatTextView.setText(mCatTitles[position]);
-
             holder.mCatImageView.setImageDrawable(mCatDrawables[position]);
 
+
+            if (mSelectedPosition == position)
+            {
+                holder.mCatImageView.setSelected(true);
+                Log.d(LOG_TAG, "onBindView selected " + position);
+            }
+            else{
+                holder.mCatImageView.setSelected(false);
+            }
         }
 
         @Override
@@ -219,18 +285,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public static class CatViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    public interface OnCatViewHolderClick
+    {
+        void onClick(int pos);
+    }
+
+
+    public class CatViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
         public TextView mCatTextView;
         public ImageView mCatImageView;
+        public OnCatViewHolderClick mOnCatViewHolderClick;
+
         public CatViewHolder(View v) {
+
             super(v);
+
+            v.setClickable(true);
+            v.setOnClickListener(this);
+            v.setSelected(false);
+
             mCatTextView = (TextView) v.findViewById(R.id.category_title_textview);
             mCatImageView = (ImageView) v.findViewById(R.id.category_imageview);
         }
 
+        public void setOnCatViewHolderClick(OnCatViewHolderClick cb){
+            mOnCatViewHolderClick = cb;
+        }
+
         @Override
         public void onClick(View v) {
+
+            Log.d(LOG_TAG, "onClick " + getLayoutPosition());
+            mCatImageView.setSelected(true);
+
+            if (mOnCatViewHolderClick != null)
+            {
+                mOnCatViewHolderClick.onClick(getLayoutPosition());
+            }
 
         }
     }

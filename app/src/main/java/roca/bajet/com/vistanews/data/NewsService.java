@@ -11,15 +11,15 @@ import retrofit2.http.Query;
 public interface NewsService {
 
     //business, entertainment, gaming, general, music, politics, science-and-nature, sport, technology
-    public static final String CAT_BUSINESS = "business";
-    public static final String CAT_ENTERTAINMENT = "entertainment";
-    public static final String CAT_GAMING = "gaming";
-    public static final String CAT_GENERAL = "general";
-    public static final String CAT_MUSIC = "music";
-    public static final String CAT_POLITICS = "politics";
-    public static final String CAT_SCIENCE = "science-and-nature";
-    public static final String CAT_SPORTS = "sport";
-    public static final String CAT_TECH = "technology";
+    String CAT_BUSINESS = "business";
+    String CAT_ENTERTAINMENT = "entertainment";
+    String CAT_GAMING = "gaming";
+    String CAT_GENERAL = "general";
+    String CAT_MUSIC = "music";
+    String CAT_POLITICS = "politics";
+    String CAT_SCIENCE = "science-and-nature";
+    String CAT_SPORTS = "sport";
+    String CAT_TECH = "technology";
 
     @GET("v1/sources")
     Call<GetSourceResponse> getSource(
@@ -28,17 +28,10 @@ public interface NewsService {
         @Query("category") String category
     );
 
-    @GET("v1/sources")
-    Call<GetSourceResponse> getSource(
-            @Query("language") String language,
-            @Query("country") String country
+    @GET("v1/articles")
+    Call<GetArticleResponse> getArticle(
+        @Query("source") String source,
+        @Query("apiKey") String apiKey,
+        @Query("sortBy") String sortBy
     );
-
-    @GET("v1/sources")
-    Call<GetSourceResponse> getSource(
-            @Query("category") String category
-    );
-
-    @GET("v1/sources")
-    Call<GetSourceResponse> getSource();
 }

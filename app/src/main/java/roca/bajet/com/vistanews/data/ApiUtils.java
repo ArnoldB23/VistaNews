@@ -46,7 +46,8 @@ public class ApiUtils {
             Uri.Builder uriBuilder = new Uri.Builder();
             uriBuilder.scheme("https")
                     .authority("logo.clearbit.com")
-                    .appendPath(getDomainName(companyUrl));
+                    .appendPath(getDomainName(companyUrl))
+                    .appendQueryParameter("size", "288");
 
 
             logosUrl = uriBuilder.build().toString();

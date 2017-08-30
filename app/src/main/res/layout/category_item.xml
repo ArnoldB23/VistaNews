@@ -5,16 +5,19 @@
               android:layout_width="88dp"
               android:layout_height="80dp">
 
+
     <ImageView
         android:id="@+id/category_imageview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:tint="@color/category_item_select"
         app:srcCompat="@drawable/business_icon"/>
 
     <TextView
         android:id="@+id/category_title_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="@color/colorTitleR"
         android:ellipsize="end"
         android:maxLines="3"
         android:text="TextView and LONG TNAME NAME NAME :) gold now"
