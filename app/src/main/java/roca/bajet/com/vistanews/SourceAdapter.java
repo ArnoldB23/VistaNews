@@ -61,7 +61,7 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
         String sourceUrl = ApiUtils.getLogosUrl(realmSource.url);
 
-        //Log.d(LOG_TAG, "onBindViewHolder, drawable : " + placeholder + ", url : " + sourceUrl);
+        Log.d(LOG_TAG, "onBindViewHolder, drawable : " + placeholder + ", url : " + sourceUrl);
         //Glide.with(mContext).load(sourceUrl).into(holder.mSourceImageView).onLoadFailed(placeholder);
         GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(new SimpleTarget<Drawable>() {
             @Override

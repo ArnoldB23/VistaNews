@@ -18,6 +18,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    buildTypes.each{
+        it.buildConfigField('String', 'NEWS_API_KEY', NewsApiKey);
+    }
 }
 
 dependencies {

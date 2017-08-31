@@ -1,5 +1,6 @@
 package roca.bajet.com.vistanews;
 
+import android.content.Intent;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
 import io.realm.RealmList;
 import io.realm.RealmResults;
 import retrofit2.Call;
@@ -115,6 +117,11 @@ public class MainActivity extends AppCompatActivity {
         snapHelper.attachToRecyclerView(mCategoryRecyclerView);
 
         Realm.init(this);
+        RealmConfiguration config = new RealmConfiguration
+                .Builder()
+                .deleteRealmIfMigrationNeeded()
+                .build();
+
 
         mNewsService = ApiUtils.getNewsService();
 
@@ -127,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        mRealm = Realm.getDefaultInstance();
+        mRealm = Realm.getInstance(config);
 
 
 
@@ -136,8 +143,17 @@ public class MainActivity extends AppCompatActivity {
 
         mSourcesRecyclerView.setAdapter(mSourceAdapter);
 
-        //mSourceAdapter.updateData(realm.where(RealmSource.class).findAllAsync().createSnapshot());
+        mSourcesRecyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
 
+                RealmSource newsSource = mSourceAdapter.getItem(position);
+                i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
+
+                startActivity(i);
+            }
+        }));
 
 
 
