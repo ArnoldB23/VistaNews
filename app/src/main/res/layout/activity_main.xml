@@ -36,6 +36,8 @@
         android:id="@+id/source_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="@dimen/item_offset"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
 

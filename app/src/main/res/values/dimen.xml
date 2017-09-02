@@ -3,5 +3,6 @@
     <dimen name="source_item_side_margin_size">2dp</dimen>
     <dimen name="source_item_bottom_margin_size">8dp</dimen>
 
+    <dimen name="item_offset">2dp</dimen>
     <dimen name="cat_item_top_margin_size">4dp</dimen>
 </resources>

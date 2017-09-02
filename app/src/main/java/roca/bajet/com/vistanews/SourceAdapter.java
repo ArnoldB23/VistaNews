@@ -3,6 +3,7 @@ package roca.bajet.com.vistanews;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -69,6 +70,8 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
                 //Log.d(LOG_TAG, "w : " + resource.getIntrinsicWidth() + ", h : " + resource.getIntrinsicHeight());
 
+                ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
+
                 if (resource.getIntrinsicWidth() >= 288 && resource.getIntrinsicHeight() >= 288)
                 {
                     holder.mSourceImageView.setImageDrawable(resource);
@@ -126,7 +129,7 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     }
 
 
-    public static class SourceViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public class SourceViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         public TextView mSourceTitleTextView;
         public ImageView mSourceImageView;
@@ -134,11 +137,23 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
             super(v);
             mSourceTitleTextView = (TextView) v.findViewById(R.id.source_item_textview);
             mSourceImageView = (ImageView) v.findViewById(R.id.source_item_imageview);
+
+            v.setClickable(true);
+            v.setOnClickListener(this);
         }
 
         @Override
         public void onClick(View v) {
+            /*
+            Intent i = new Intent(mContext, ArticleListActivity.class);
 
+            RealmSource newsSource = getItem(getAdapterPosition());
+            i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
+
+            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation((Activity)mContext, mSourceImageView, newsSource.id);
+            mContext.startActivity(i, options.toBundle());
+
+            */
         }
     }
 }

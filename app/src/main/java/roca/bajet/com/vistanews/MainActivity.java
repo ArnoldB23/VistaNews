@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -130,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
         GridLayoutManager gm = new GridLayoutManager(this, 4);
         mSourcesRecyclerView.setHasFixedSize(true);
         mSourcesRecyclerView.setLayoutManager(gm);
-
-
+        ItemOffsetDecoration itemDecoration = new ItemOffsetDecoration(this, R.dimen.item_offset);
+        mSourcesRecyclerView.addItemDecoration(itemDecoration);
 
 
         mRealm = Realm.getInstance(config);
@@ -148,10 +149,18 @@ public class MainActivity extends AppCompatActivity {
             public void onItemClick(View view, int position) {
                 Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
 
+                //ImageView mSourceImageView = (ImageView) view.findViewById(R.id.source_item_imageview);
+
                 RealmSource newsSource = mSourceAdapter.getItem(position);
                 i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
 
-                startActivity(i);
+
+
+                ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, view, newsSource.id);
+
+                startActivity(i, options.toBundle());
+
+                //startActivity(i);
             }
         }));
 
