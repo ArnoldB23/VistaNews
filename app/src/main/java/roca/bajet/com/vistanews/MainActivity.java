@@ -1,10 +1,12 @@
 package roca.bajet.com.vistanews;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -12,6 +14,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SnapHelper;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -147,20 +150,43 @@ public class MainActivity extends AppCompatActivity {
         mSourcesRecyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-                Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
+                final Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
 
                 //ImageView mSourceImageView = (ImageView) view.findViewById(R.id.source_item_imageview);
 
                 RealmSource newsSource = mSourceAdapter.getItem(position);
                 i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
 
-
-
+                /*
                 ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, view, newsSource.id);
-
                 startActivity(i, options.toBundle());
+                */
 
-                //startActivity(i);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                {
+                    int cx = mSourcesRecyclerView.getWidth() / 2;
+                    int cy = mSourcesRecyclerView.getHeight() / 2;
+                    int vx = (int)view.getX() + (view.getWidth()/2);
+                    int vy = (int)view.getY() + (view.getWidth()/2);
+
+                    float initialRadius = (float) Math.hypot(cx, cy);
+                    Animator anim = ViewAnimationUtils.createCircularReveal(mSourcesRecyclerView, vx, vy, initialRadius, 0);
+                    anim.setDuration(300);
+
+                    anim.addListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mSourcesRecyclerView.setVisibility(View.INVISIBLE);
+                            startActivity(i);
+                        }
+                    });
+
+                    anim.start();
+                }else{
+                    startActivity(i);
+                }
+
             }
         }));
 
@@ -257,6 +283,14 @@ public class MainActivity extends AppCompatActivity {
             mRealm.close();
             mRealm = null;
         }
+    }
+
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+
+        mSourcesRecyclerView.setVisibility(View.VISIBLE);
     }
 
     public class CategoryAdapter extends RecyclerView.Adapter<CatViewHolder> {

@@ -1,35 +1,40 @@
 package roca.bajet.com.vistanews;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.view.ViewCompat;
+import android.support.v4.view.animation.FastOutSlowInInterpolator;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.transition.Slide;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.request.transition.Transition;
+import com.transitionseverywhere.Fade;
+import com.transitionseverywhere.TransitionManager;
+import com.transitionseverywhere.TransitionSet;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +75,7 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     private Context mContext;
     private ArticleAdapter mArticleAdapter;
     private CardView mSourceIconCardView;
+    private CoordinatorLayout mRootView;
 
     private static final int PERCENTAGE_TO_SHOW_IMAGE = 60;
     private int mMaxScrollSize;
@@ -81,10 +87,10 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
 
         setContentView(R.layout.activity_article_list);
 
-        supportPostponeEnterTransition();
 
         mContext = getApplicationContext();
 
+        mRootView = (CoordinatorLayout)findViewById(R.id.root_coordinatorlayout);
         mAppBarLayout = (AppBarLayout) findViewById(R.id.article_list_appbarlayout);
         mArticleListImageView = (ImageView) findViewById(R.id.article_list_imageview);
         mArticleListRecyclerView = (RecyclerView) findViewById(R.id.article_list_recyclerview);
@@ -93,11 +99,53 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         mToolbar = (Toolbar) findViewById(R.id.article_list_toolbar);
         mSourceIconCardView = (CardView) findViewById(R.id.source_icon_cardview);
 
+        final com.transitionseverywhere.Slide slideTransition = new com.transitionseverywhere.Slide(Gravity.TOP);
+        slideTransition.setDuration(1000);
+        slideTransition.setInterpolator(new FastOutSlowInInterpolator());
+        slideTransition.addTarget(mAppBarLayout);
+        slideTransition.addListener(new com.transitionseverywhere.Transition.TransitionListener() {
+            @Override
+            public void onTransitionStart(com.transitionseverywhere.Transition transition) {
+
+            }
+
+            @Override
+            public void onTransitionEnd(com.transitionseverywhere.Transition transition) {
+                //mArticleListRecyclerView.animate().setDuration(1000).alpha(1f);
+                slideTransition.removeListener(this);
+            }
+
+            @Override
+            public void onTransitionCancel(com.transitionseverywhere.Transition transition) {
+
+            }
+
+            @Override
+            public void onTransitionPause(com.transitionseverywhere.Transition transition) {
+
+            }
+
+            @Override
+            public void onTransitionResume(com.transitionseverywhere.Transition transition) {
+
+            }
+        });
+
+
+        //android.transition.TransitionManager.beginDelayedTransition(mAppBarLayout, slideTransitionDown);
+        //android.transition.TransitionManager.beginDelayedTransition(mArticleListRecyclerView, slideTransitionUp);
+        //mAppBarLayout.setVisibility(View.VISIBLE);
+        //mArticleListRecyclerView.setVisibility(View.VISIBLE);
+
+
+        supportPostponeEnterTransition();
+
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
 
         mAppBarLayout.addOnOffsetChangedListener(this);
+
 
         mSourceId = getIntent().getExtras().getString(EXTRA_SOURCE_ID);
         RealmConfiguration config = new RealmConfiguration
@@ -111,15 +159,19 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         final RealmSource source = realmSourceResult.first();
 
         mCollapsingToolbarLayout.setTitle(source.name);
-        String sourceUrl = ApiUtils.getLogosUrl(source.url);
+        final String sourceUrl = ApiUtils.getLogosUrl(source.url);
+
+        //mArticleListImageView.setAlpha(0f);
+        //mArticleListRecyclerView.setAlpha(0f);
 
 
         final Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, source);
 
         mSourceIconImageView.setTransitionName(mSourceId);
-        GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(new SimpleTarget<Drawable>() {
+
+        SimpleTarget<Drawable> target = new SimpleTarget<Drawable>() {
             @Override
-            public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
+            public void onResourceReady(Drawable resource, Transition<? super Drawable> t) {
 
                 //Log.d(LOG_TAG, "w : " + resource.getIntrinsicWidth() + ", h : " + resource.getIntrinsicHeight());
 
@@ -133,9 +185,96 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
                     mSourceIconImageView.setImageDrawable(placeholder);
                 }
 
+
+
+                Slide slideTransitionDown = new Slide();
+                slideTransitionDown.setDuration(500);
+                slideTransitionDown.setInterpolator(AnimationUtils.loadInterpolator(ArticleListActivity.this, android.R.interpolator.linear_out_slow_in));
+
+                final com.transitionseverywhere.Slide slideTransitionUp = new com.transitionseverywhere.Slide(Gravity.BOTTOM);
+                slideTransitionUp.setDuration(1000);
+                slideTransitionUp.setInterpolator(AnimationUtils.loadInterpolator(ArticleListActivity.this, android.R.interpolator.linear_out_slow_in));
+                slideTransitionUp.addTarget(mSourceIconImageView);
+
+                final Fade fadeTransition = new Fade(Fade.IN);
+                fadeTransition.setDuration(1000);
+                fadeTransition.setInterpolator(new FastOutSlowInInterpolator());
+                fadeTransition.addTarget(mArticleListRecyclerView);
+
+
+                //mArticleListImageView.animate().setDuration(1000).alpha(1f);
+                //transition.removeListener(com.transitionseverywhere.Transition.TransitionListener.this);
+                //getWindow().setEnterTransition(slideTransitionUp);
+
+                //mRootView.getViewTreeObserver().add
+                //supportStartPostponedEnterTransition();
+                final TransitionSet transitionSet = new TransitionSet();
+                transitionSet.addTransition(fadeTransition);
+                transitionSet.addTransition(slideTransitionUp);
+                transitionSet.addTransition(slideTransition);
+                transitionSet.setOrdering(TransitionSet.ORDERING_TOGETHER);
+                //supportStartPostponedEnterTransition();
+
+                //TransitionManager.beginDelayedTransition(mRootView, transitionSet);
+
+                mRootView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        mRootView.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                        Log.d(LOG_TAG, "OnPreDrawListener " );
+                        supportStartPostponedEnterTransition();
+                        TransitionManager.beginDelayedTransition(mRootView, transitionSet);
+
+                        //TransitionManager.beginDelayedTransition(mRootView, slideTransition);
+                        //TransitionManager.beginDelayedTransition(mRootView, fadeTransition);
+                        mAppBarLayout.setVisibility(View.VISIBLE);
+                        mArticleListRecyclerView.setVisibility(View.VISIBLE);
+                        mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
+                        mArticleListImageView.setVisibility(View.VISIBLE);
+                        return false;
+                    }
+                });
+
+
+                mRootView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        mRootView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+
+                        Log.d(LOG_TAG, "OnGlobalLayoutListener " );
+                        //supportStartPostponedEnterTransition();
+                        //TransitionManager.beginDelayedTransition(mRootView, transitionSet);
+
+                        //TransitionManager.beginDelayedTransition(mRootView, slideTransition);
+                        //TransitionManager.beginDelayedTransition(mRootView, fadeTransition);
+                        //mAppBarLayout.setVisibility(View.VISIBLE);
+                        //mArticleListRecyclerView.setVisibility(View.VISIBLE);
+                        //mArticleListRecyclerView.animate().setDuration(1000).alpha(1f);
+
+                    }
+                });
+
+            }
+
+            @Override
+            public void onLoadFailed(@Nullable Drawable errorDrawable) {
                 supportStartPostponedEnterTransition();
             }
-        });
+
+
+        };
+
+
+        GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(target);
+
+
+        //com.transitionseverywhere.TransitionManager.beginDelayedTransition(mAppBarLayout, slideTransition);
+        //mAppBarLayout.setVisibility(View.VISIBLE);
+
+        //final com.transitionseverywhere.Slide slideTransition = new com.transitionseverywhere.Slide(Gravity.TOP);
+
+
 
         RealmResults<RealmArticle> realmArticles = mRealm.where(RealmArticle.class).contains("sourceId",mSourceId).findAll();
         mArticleAdapter = new ArticleAdapter(realmArticles, true);
@@ -209,15 +348,25 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
 
     }
 
+    @Override
+    public void onDestroy()
+    {
+        super.onDestroy();
+
+        if(mRealm != null)
+        {
+            mRealm.close();
+            mRealm = null;
+        }
+    }
+
     private String formatDateString(String publishedAt)
     {
-        Date now = Calendar.getInstance().getTime();
-
-
+        Date now = new Date();
 
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-ddHH:mm:ss");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
-
+        SimpleDateFormat df2 = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss a zzz");
         try {
             Date date = df.parse(publishedAt.replaceAll("[tTzZ]", ""));
 
@@ -251,6 +400,11 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
             {
                 elapsedTime = String.valueOf(diffInHours/24) + " days ago";
             }
+
+            else{
+                elapsedTime = df2.format(date).toString();
+            }
+
             return elapsedTime;
         } catch (Exception e) {
             e.printStackTrace();
@@ -267,6 +421,8 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
             case android.R.id.home:
                 //NavUtils.navigateUpFromSameTask(this);
                 supportFinishAfterTransition();
+
+
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -322,7 +478,7 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
             holder.mTitleTextView.setText(realmArticle.title);
             holder.mDescriptionTextView.setText(realmArticle.description);
             holder.mDateTextView.setText(formatDateString(realmArticle.publishedAt));
-
+            holder.mArticleUrl = realmArticle.url;
 
             GlideApp.with(mContext).load(realmArticle.urlToImage).into(holder.mArticleImageView);
             Log.d(LOG_TAG, "onBindViewHolder" + realmArticle.title);
@@ -336,6 +492,8 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         public TextView mTitleTextView;
         public TextView mDescriptionTextView;
         public TextView mDateTextView;
+        public String mArticleUrl;
+
 
         public ArticleViewHolder (View v)
         {
@@ -351,7 +509,10 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
 
         @Override
         public void onClick(View v) {
+            Intent i = new Intent(ArticleListActivity.this, ArticleDetailActivity.class);
+            i.putExtra(ArticleDetailActivity.EXTRA_DETAIL_URL, mArticleUrl);
 
+            startActivity(i);
         }
     }
 

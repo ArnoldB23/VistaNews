@@ -21,6 +21,9 @@
 
         <activity android:name=".ArticleListActivity"
             android:parentActivityName=".MainActivity"/>
+
+        <activity android:name=".ArticleDetailActivity"
+                  android:parentActivityName=".ArticleListActivity"/>
     </application>
 
 </manifest>
