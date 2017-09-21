@@ -2,10 +2,11 @@ package roca.bajet.com.vistanews;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,8 +15,7 @@ import android.view.animation.Interpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.transition.Transition;
+import com.bumptech.glide.Glide;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmRecyclerViewAdapter;
@@ -32,8 +32,15 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     private final String LOG_TAG = "SourceAdapter";
     private int lastPosition = -1;
     private float offset = 300f;
-    private int countLimit = 20;
+    public int countLimit = 20;
     private int count = 0;
+
+    public OnSourceViewHolderClick mOnSourceViewHolderClick;
+
+
+    public interface OnSourceViewHolderClick{
+        void onClick(SourceViewHolder viewHolder);
+    }
 
 
     public SourceAdapter(Context c, @Nullable OrderedRealmCollection<RealmSource> data, boolean autoUpdate)
@@ -62,15 +69,17 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
         String sourceUrl = ApiUtils.getLogosUrl(realmSource.url);
 
-        Log.d(LOG_TAG, "onBindViewHolder, drawable : " + placeholder + ", url : " + sourceUrl);
-        //Glide.with(mContext).load(sourceUrl).into(holder.mSourceImageView).onLoadFailed(placeholder);
+        //Log.d(LOG_TAG, "onBindViewHolder, drawable : " + placeholder + ", url : " + sourceUrl);
+        Glide.with(mContext).load(sourceUrl).into(holder.mSourceImageView).onLoadFailed(placeholder);
+
+        /*
         GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(new SimpleTarget<Drawable>() {
             @Override
             public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
 
                 //Log.d(LOG_TAG, "w : " + resource.getIntrinsicWidth() + ", h : " + resource.getIntrinsicHeight());
 
-                ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
+                //ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
 
                 if (resource.getIntrinsicWidth() >= 288 && resource.getIntrinsicHeight() >= 288)
                 {
@@ -81,9 +90,9 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
                 }
             }
         });
+        */
 
-
-
+        ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
         holder.mSourceTitleTextView.setText(realmSource.name);
 
         setAnimation(holder.itemView, position);
@@ -93,7 +102,6 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     {
         lastPosition = -1;
         offset = 300f;
-        countLimit = 20;
         count = 0;
     }
 
@@ -101,9 +109,15 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     {
         if (position > lastPosition && count < countLimit)
         {
-            Log.d(LOG_TAG, "animate offeset: " + offset + ", pos: " + position);
+            //Log.d(LOG_TAG, "animate offeset: " + offset + ", pos: " + position);
+            Interpolator interpolator;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            {
+                interpolator = AnimationUtils.loadInterpolator(mContext, android.R.interpolator.linear_out_slow_in);
+            }else{
+                interpolator = AnimationUtils.loadInterpolator(mContext, android.R.interpolator.linear);
+            }
 
-            Interpolator interpolator = AnimationUtils.loadInterpolator(mContext, android.R.interpolator.linear_out_slow_in);
             view.setVisibility(View.VISIBLE);
             view.setTranslationY(offset);
             view.setAlpha(0.85f);
@@ -133,10 +147,14 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
         public TextView mSourceTitleTextView;
         public ImageView mSourceImageView;
+        public CardView mSourceCardView;
+
+
         public SourceViewHolder(View v) {
             super(v);
             mSourceTitleTextView = (TextView) v.findViewById(R.id.source_item_textview);
             mSourceImageView = (ImageView) v.findViewById(R.id.source_item_imageview);
+            mSourceCardView = (CardView) v.findViewById(R.id.source_item_cardview);
 
             v.setClickable(true);
             v.setOnClickListener(this);
@@ -154,6 +172,11 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
             mContext.startActivity(i, options.toBundle());
 
             */
+
+            if (mOnSourceViewHolderClick != null)
+            {
+                mOnSourceViewHolderClick.onClick(this);
+            }
         }
     }
 }

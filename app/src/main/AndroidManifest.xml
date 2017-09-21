@@ -20,10 +20,13 @@
         </activity>
 
         <activity android:name=".ArticleListActivity"
-            android:parentActivityName=".MainActivity"/>
+            android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop"/>
 
         <activity android:name=".ArticleDetailActivity"
                   android:parentActivityName=".ArticleListActivity"/>
+
+
     </application>
 
 </manifest>

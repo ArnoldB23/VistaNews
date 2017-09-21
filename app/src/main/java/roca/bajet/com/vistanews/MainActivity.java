@@ -1,21 +1,19 @@
 package roca.bajet.com.vistanews;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
-import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SnapHelper;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -40,9 +38,14 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerItemClickListener mCategoryItemClickListener;
     private RecyclerView mCategoryRecyclerView;
     private RecyclerView mSourcesRecyclerView;
+    private TabLayout mCategoryTabLayout;
+    private TextView mCategoryTitleTextView;
+
     private NewsService mNewsService;
+    private AppBarLayout mMainAppBarLayout;
     private static final String LOG_TAG = "MainActivity";
     private Realm mRealm;
+    private String mCurrentCategoryTab;
 
     private String [] categoryParamNames = {
             "",
@@ -58,12 +61,102 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_tabs);
+
+        mMainAppBarLayout = (AppBarLayout)findViewById(R.id.main_appbarlayout);
+
+        mCategoryTabLayout = (TabLayout)findViewById(R.id.category_tablayout);
+        mCategoryTitleTextView = (TextView)findViewById(R.id.category_title_textview);
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_all).setTag("All"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_general).setTag("General"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_media).setTag("Media"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_tech).setTag("Technology & Science"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_sports).setTag("Sports"));
+
+
+        mCategoryTitleTextView.setText("All");
+
+        mCategoryTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+
+                RealmResults<RealmSource> tabRealmResults = null;
+
+                mCurrentCategoryTab = String.valueOf(tab.getTag());
+
+                if (tab.getTag().equals("All"))
+                {
+                    tabRealmResults = mRealm.where(RealmSource.class).findAll();
+                    mCategoryTitleTextView.setText("All");
+                }
+                else if (tab.getTag().equals("General"))
+                {
+                    mCategoryTitleTextView.setText("General");
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "general")
+                            .or()
+                            .contains("category", "politics")
+                            .or()
+                            .contains("category", "business")
+                            .findAll();
+
+                }
+
+                else if (tab.getTag().equals("Media"))
+                {
+                    mCategoryTitleTextView.setText("Media");
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "entertainment")
+                            .or()
+                            .contains("category", "gaming")
+                            .or()
+                            .contains("category", "music")
+                            .findAll();
+                }
+                else if (tab.getTag().equals("Technology & Science"))
+                {
+                    mCategoryTitleTextView.setText("Technology & Science");
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "technology")
+                            .or()
+                            .contains("category", "science-and-nature")
+                            .findAll();
+                }
+                else if (tab.getTag().equals("Sports"))
+                {
+                    mCategoryTitleTextView.setText("Sports");
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "sport")
+                            .findAll();
+                }
+
+                mSourceAdapter.resetAnimation();
+                mSourceAdapter.updateData(tabRealmResults);
+
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+
+            }
+        });
+
 
         //Get array resources for category titles and drawables
+        /*
+
+
         TypedArray typedTitleArray = getResources().obtainTypedArray(R.array.category_title_array);
         String [] catTitles = new String[typedTitleArray.length()];
         for (int i = 0; i < typedTitleArray.length(); i++)
@@ -111,14 +204,16 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
-
         mCategoryRecyclerView.addOnItemTouchListener(mCategoryItemClickListener);
         mCategoryRecyclerView.setAdapter(mCategoryAdapter);
-
-
         SnapHelper snapHelper = new StartSnapHelper();
         snapHelper.attachToRecyclerView(mCategoryRecyclerView);
+        */
+
+
+
+
+        Log.d(LOG_TAG, "onCreate");
 
         Realm.init(this);
         RealmConfiguration config = new RealmConfiguration
@@ -129,13 +224,31 @@ public class MainActivity extends AppCompatActivity {
 
         mNewsService = ApiUtils.getNewsService();
 
-
+        mCurrentCategoryTab = "All";
         mSourcesRecyclerView = (RecyclerView) findViewById(R.id.source_recyclerview);
-        GridLayoutManager gm = new GridLayoutManager(this, 4);
+        final GridLayoutManager gm = new GridLayoutManager(this, 4);
+
+
+        //Update animation item count to avoid glitchy scroll animation.
+        mSourcesRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                mSourcesRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                int lastItemPosition = gm.findLastVisibleItemPosition();
+
+                if ( lastItemPosition > 0)
+                {
+                    mSourceAdapter.countLimit = ++lastItemPosition;
+                }
+
+            }
+        });
+
+
+
         mSourcesRecyclerView.setHasFixedSize(true);
         mSourcesRecyclerView.setLayoutManager(gm);
-        ItemOffsetDecoration itemDecoration = new ItemOffsetDecoration(this, R.dimen.item_offset);
-        mSourcesRecyclerView.addItemDecoration(itemDecoration);
+
 
 
         mRealm = Realm.getInstance(config);
@@ -144,8 +257,18 @@ public class MainActivity extends AppCompatActivity {
 
         RealmResults<RealmSource> results = mRealm.where(RealmSource.class).findAllAsync();
         mSourceAdapter = new SourceAdapter(MainActivity.this, results, true);
+        int offset = getResources().getDimensionPixelOffset(R.dimen.item_offset);
+
+
+
+
+        ItemOffsetDecoration itemDecoration = new ItemOffsetDecoration(offset);
+        mSourcesRecyclerView.addItemDecoration(itemDecoration);
 
         mSourcesRecyclerView.setAdapter(mSourceAdapter);
+
+
+
 
         mSourcesRecyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
             @Override
@@ -154,26 +277,28 @@ public class MainActivity extends AppCompatActivity {
 
                 //ImageView mSourceImageView = (ImageView) view.findViewById(R.id.source_item_imageview);
 
-                RealmSource newsSource = mSourceAdapter.getItem(position);
-                i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
 
-                /*
-                ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, view, newsSource.id);
-                startActivity(i, options.toBundle());
-                */
+
+                RealmSource newsSource = mSourceAdapter.getItem(position);
+                i.putExtra(ArticleListActivity.EXTRA_INITIAL_SOURCE_ID, newsSource.id);
+                i.putExtra(ArticleListActivity.EXTRA_SOURCE_CATEGORY, mCurrentCategoryTab);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
                 {
+                    /*
                     int cx = mSourcesRecyclerView.getWidth() / 2;
                     int cy = mSourcesRecyclerView.getHeight() / 2;
                     int vx = (int)view.getX() + (view.getWidth()/2);
                     int vy = (int)view.getY() + (view.getWidth()/2);
 
                     float initialRadius = (float) Math.hypot(cx, cy);
-                    Animator anim = ViewAnimationUtils.createCircularReveal(mSourcesRecyclerView, vx, vy, initialRadius, 0);
-                    anim.setDuration(300);
+                    Animator animCircle = ViewAnimationUtils.createCircularReveal(mSourcesRecyclerView, vx, vy, initialRadius, 0);
+                    animCircle.setDuration(300);
 
-                    anim.addListener(new AnimatorListenerAdapter() {
+
+                    AnimationSet animSet = new AnimationSet(false);
+
+                    animCircle.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             super.onAnimationEnd(animation);
@@ -182,7 +307,20 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
 
-                    anim.start();
+                    animCircle.start();
+                    */
+
+                    ImageView sourceImageView = (ImageView)view.findViewById(R.id.source_item_imageview);
+                    //CardView sourceCardView = (CardView)view.findViewById(R.id.source_item_cardview);
+
+                    //Pair<View, String> p1 = Pair.create((View)sourceImageView, newsSource.id);
+                    //Pair<View, String> p2 = Pair.create((View)sourceCardView, newsSource.name);
+
+
+                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, sourceImageView, newsSource.id);
+                    //ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, p1, p2);
+                    startActivityForResult(i, ArticleListActivity.RESULT_CODE, options.toBundle());
+
                 }else{
                     startActivity(i);
                 }
@@ -290,8 +428,10 @@ public class MainActivity extends AppCompatActivity {
     {
         super.onResume();
 
-        mSourcesRecyclerView.setVisibility(View.VISIBLE);
+
     }
+
+
 
     public class CategoryAdapter extends RecyclerView.Adapter<CatViewHolder> {
         private String[] mCatTitles;
@@ -310,6 +450,8 @@ public class MainActivity extends AppCompatActivity {
 
             View view = getLayoutInflater().inflate(R.layout.category_item, parent, false);
             CatViewHolder vh = new CatViewHolder(view);
+
+
 
             vh.setOnCatViewHolderClick(new OnCatViewHolderClick() {
                 @Override
@@ -332,6 +474,7 @@ public class MainActivity extends AppCompatActivity {
             {
                 holder.mCatImageView.setSelected(true);
                 Log.d(LOG_TAG, "onBindView selected " + position);
+
             }
             else{
                 holder.mCatImageView.setSelected(false);
@@ -366,6 +509,9 @@ public class MainActivity extends AppCompatActivity {
 
             mCatTextView = (TextView) v.findViewById(R.id.category_title_textview);
             mCatImageView = (ImageView) v.findViewById(R.id.category_imageview);
+
+
+
         }
 
         public void setOnCatViewHolderClick(OnCatViewHolderClick cb){

@@ -25,13 +25,27 @@
             app:layout_scrollFlags="scroll|enterAlways|snap">
         </android.support.v7.widget.Toolbar>
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/category_recyclerview"
+        <android.support.design.widget.TabLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/category_tablayout"
+            app:tabMode="fixed"
             app:layout_scrollFlags="scroll|enterAlways|snap"/>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/category_title_textview"
+            style="@style/TextAppearance.AppCompat.Subhead"
+            android:textColor="@color/textColor"
+            app:layout_scrollFlags="scroll|enterAlways|snap"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:paddingLeft="16dp"
+            android:paddingStart="16dp"/>
+
     </android.support.design.widget.AppBarLayout>
+
 
 
 
@@ -40,9 +54,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
+        app:layout_scrollFlags="scroll|snap"
         android:background="@color/colorMainBackground"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
-
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        />
 
 
 

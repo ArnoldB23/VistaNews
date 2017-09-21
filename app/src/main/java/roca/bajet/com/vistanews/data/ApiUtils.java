@@ -8,6 +8,8 @@ import android.support.v4.content.ContextCompat;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import io.realm.Realm;
+import io.realm.RealmResults;
 import roca.bajet.com.vistanews.R;
 
 import static roca.bajet.com.vistanews.data.NewsService.CAT_BUSINESS;
@@ -59,6 +61,54 @@ public class ApiUtils {
 
         return logosUrl;
 
+    }
+
+    public static RealmResults<RealmSource> getRealmResultsFromTab(Realm realm, String tabStr)
+    {
+        RealmResults<RealmSource> tabRealmResults = null;
+
+        if (tabStr.equals("All"))
+        {
+            tabRealmResults = realm.where(RealmSource.class).findAll();
+        }
+        else if (tabStr.equals("General"))
+        {
+            tabRealmResults = realm.where(RealmSource.class)
+                    .contains("category", "general")
+                    .or()
+                    .contains("category", "politics")
+                    .or()
+                    .contains("category", "business")
+                    .findAll();
+
+        }
+
+        else if (tabStr.equals("Media"))
+        {
+            tabRealmResults = realm.where(RealmSource.class)
+                    .contains("category", "entertainment")
+                    .or()
+                    .contains("category", "gaming")
+                    .or()
+                    .contains("category", "music")
+                    .findAll();
+        }
+        else if (tabStr.equals("Technology & Science"))
+        {
+            tabRealmResults = realm.where(RealmSource.class)
+                    .contains("category", "technology")
+                    .or()
+                    .contains("category", "science-and-nature")
+                    .findAll();
+        }
+        else if (tabStr.equals("Sports"))
+        {
+            tabRealmResults = realm.where(RealmSource.class)
+                    .contains("category", "sport")
+                    .findAll();
+        }
+
+        return tabRealmResults;
     }
 
     public static Drawable getCategoryDrawableFromRealSource(Context c, RealmSource source)

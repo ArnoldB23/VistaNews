@@ -17,12 +17,25 @@ public class ItemOffsetDecoration extends RecyclerView.ItemDecoration {
 
     public ItemOffsetDecoration(@NonNull Context context, @DimenRes int itemOffsetId) {
         this(context.getResources().getDimensionPixelSize(itemOffsetId));
+
+
+
     }
 
     @Override
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
                                RecyclerView.State state) {
         super.getItemOffsets(outRect, view, parent, state);
-        outRect.set(mItemOffset, mItemOffset, mItemOffset, mItemOffset);
+
+
+
+
+        //outRect.left = mItemOffset;
+        //outRect.right = mItemOffset;
+        outRect.top = mItemOffset;
+        outRect.bottom = mItemOffset;
+
+
+
     }
 }

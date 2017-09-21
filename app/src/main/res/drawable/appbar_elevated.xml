@@ -2,7 +2,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <objectAnimator android:propertyName="elevation"
-                        android:valueTo="8dp"
+                        android:valueTo="2dp"
                         android:valueType="floatType"
                         android:duration="1"/>
     </item>

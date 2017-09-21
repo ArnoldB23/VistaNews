@@ -12,4 +12,9 @@
     <string name="cat_sports">Sports</string>
     <string name="cat_tech">Technology</string>
 
+
+    <string name="menu_detail_share">Share</string>
+    <string name="menu_detail_send_to">Send article to:</string>
+    <string name="menu_detail_browser">Open in browser</string>
+    <string name="menu_article_list_sort_by">Sort by</string>
 </resources>

@@ -2,24 +2,24 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:app="http://schemas.android.com/apk/res-auto"
               android:orientation="vertical"
-              android:layout_width="88dp"
-              android:layout_height="80dp">
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content">
 
 
     <ImageView
         android:id="@+id/category_imageview"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:tint="@color/category_item_select"
-        app:srcCompat="@drawable/business_icon"/>
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:scaleType="centerInside"
+        android:layout_gravity="center_horizontal"
+        />
 
     <TextView
         android:id="@+id/category_title_textview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/colorTitleR"
+        android:textColor="@color/textColor"
         android:ellipsize="end"
-        android:maxLines="3"
-        android:text="TextView and LONG TNAME NAME NAME :) gold now"
+        android:maxLines="2"
         android:textAlignment="center"/>
 </LinearLayout>

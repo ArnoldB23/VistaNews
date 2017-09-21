@@ -5,7 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@drawable/color_ripple">
 
 
     <roca.bajet.com.vistanews.RatioImageView
@@ -20,15 +21,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         style="@style/ArticleTitle"
+        android:textColor="@android:color/black"
         android:paddingTop="8dp"
         android:paddingLeft="16dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"/>
 
-    <TextView
-        android:id="@+id/article_item_description"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"/>
 
     <TextView
         android:id="@+id/article_item_date"
@@ -37,6 +35,8 @@
         android:paddingLeft="16dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
+        style="@style/TextAppearance.AppCompat.Subhead"
+        android:textColor="@android:color/darker_gray"
         android:layout_marginBottom="8dp"/>
 
 </LinearLayout>
