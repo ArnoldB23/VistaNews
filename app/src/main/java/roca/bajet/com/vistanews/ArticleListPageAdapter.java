@@ -14,11 +14,13 @@ import roca.bajet.com.vistanews.data.RealmSource;
 public class ArticleListPageAdapter extends FragmentStatePagerAdapter {
 
     private RealmResults<RealmSource> mSourceList;
+    private final String LOG_TAG = "ArticleListPageAdapter";
 
     public ArticleListPageAdapter(FragmentManager fm, RealmResults<RealmSource> rs) {
         super(fm);
 
         mSourceList = rs;
+
     }
 
     public RealmSource getRealmSourceFromPosition(int position)
@@ -31,8 +33,12 @@ public class ArticleListPageAdapter extends FragmentStatePagerAdapter {
 
         RealmSource source = mSourceList.get(position);
         Fragment f = ArticleListFragment.newInstance(source.id);
+
+
         return f;
     }
+
+
 
     @Override
     public int getCount() {

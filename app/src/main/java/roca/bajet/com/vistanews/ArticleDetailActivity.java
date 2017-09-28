@@ -12,12 +12,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.ShareActionProvider;
-
-import io.realm.Realm;
-import io.realm.RealmConfiguration;
-import io.realm.RealmResults;
-import roca.bajet.com.vistanews.data.RealmArticle;
 
 /**
  * Created by Arnold on 9/5/2017.
@@ -27,11 +21,9 @@ public class ArticleDetailActivity extends AppCompatActivity {
 
     private WebView mWebView;
     private Toolbar mToolbar;
-    private Realm mRealm;
+
     private String mArticleUrl;
-    private RealmArticle mRealmArticle;
     private final String LOG_TAG = ArticleDetailActivity.class.getSimpleName();
-    private ShareActionProvider mShareActionProvider;
 
     public static final String EXTRA_DETAIL_URL = "extra_detail_url";
 
@@ -54,13 +46,6 @@ public class ArticleDetailActivity extends AppCompatActivity {
 
         Log.d(LOG_TAG, mArticleUrl);
 
-        RealmConfiguration config = new RealmConfiguration
-                .Builder()
-                .deleteRealmIfMigrationNeeded()
-                .build();
-        mRealm = Realm.getInstance(config);
-        RealmResults<RealmArticle> results = mRealm.where(RealmArticle.class).equalTo("url", mArticleUrl).findAllAsync();
-        mRealmArticle = results.first();
 
         mWebView.setWebViewClient(new WebViewClient());
 
@@ -72,12 +57,6 @@ public class ArticleDetailActivity extends AppCompatActivity {
     public void onDestroy()
     {
         super.onDestroy();
-
-        if(mRealm != null)
-        {
-            mRealm.close();
-            mRealm = null;
-        }
     }
 
     @Override
@@ -94,9 +73,6 @@ public class ArticleDetailActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
-                Log.d(LOG_TAG, "onOptionsitemSelected: Home button pressed");
-
-
                 NavUtils.navigateUpFromSameTask(this);
                 return true;
 
@@ -114,9 +90,7 @@ public class ArticleDetailActivity extends AppCompatActivity {
             case R.id.action_open_browser:
 
                 Intent viewIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mArticleUrl));
-
                 startActivity(viewIntent);
-
 
                 return true;
         }

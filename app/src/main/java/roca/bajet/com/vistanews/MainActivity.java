@@ -1,18 +1,17 @@
 package roca.bajet.com.vistanews;
 
+import android.app.ActivityOptions;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.TabLayout;
-import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -33,10 +32,7 @@ import roca.bajet.com.vistanews.data.Source;
 
 public class MainActivity extends AppCompatActivity {
 
-    private CategoryAdapter mCategoryAdapter;
     private SourceAdapter mSourceAdapter;
-    private RecyclerItemClickListener mCategoryItemClickListener;
-    private RecyclerView mCategoryRecyclerView;
     private RecyclerView mSourcesRecyclerView;
     private TabLayout mCategoryTabLayout;
     private TextView mCategoryTitleTextView;
@@ -46,172 +42,22 @@ public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "MainActivity";
     private Realm mRealm;
     private String mCurrentCategoryTab;
+    private int mCurrentCategoryTabPosition;
 
-    private String [] categoryParamNames = {
-            "",
-            "business",
-            "entertainment",
-            "general",
-            "gaming",
-            "music",
-            "politics",
-            "science-and-nature",
-            "sport",
-            "technology"
-    };
+    private static final String STATE_CURRENT_CATEGORY_TAB = "STATE_CURRENT_CATEGORY_TAB";
+    private static final String STATE_CURRENT_CATEGORY_TAB_POSITION = "STATE_CURRENT_CATEGORY_TAB_POSITION";
+    private static final String STATE_SCROLL = "STATE_SCROLL";
 
-
-
-
+    private SourceSharedElementCallback mSharedElementCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_tabs);
-
         mMainAppBarLayout = (AppBarLayout)findViewById(R.id.main_appbarlayout);
-
         mCategoryTabLayout = (TabLayout)findViewById(R.id.category_tablayout);
         mCategoryTitleTextView = (TextView)findViewById(R.id.category_title_textview);
-        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_all).setTag("All"));
-        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_general).setTag("General"));
-        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_media).setTag("Media"));
-        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_tech).setTag("Technology & Science"));
-        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.cat_tab_sports).setTag("Sports"));
-
-
-        mCategoryTitleTextView.setText("All");
-
-        mCategoryTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-
-                RealmResults<RealmSource> tabRealmResults = null;
-
-                mCurrentCategoryTab = String.valueOf(tab.getTag());
-
-                if (tab.getTag().equals("All"))
-                {
-                    tabRealmResults = mRealm.where(RealmSource.class).findAll();
-                    mCategoryTitleTextView.setText("All");
-                }
-                else if (tab.getTag().equals("General"))
-                {
-                    mCategoryTitleTextView.setText("General");
-                    tabRealmResults = mRealm.where(RealmSource.class)
-                            .contains("category", "general")
-                            .or()
-                            .contains("category", "politics")
-                            .or()
-                            .contains("category", "business")
-                            .findAll();
-
-                }
-
-                else if (tab.getTag().equals("Media"))
-                {
-                    mCategoryTitleTextView.setText("Media");
-                    tabRealmResults = mRealm.where(RealmSource.class)
-                            .contains("category", "entertainment")
-                            .or()
-                            .contains("category", "gaming")
-                            .or()
-                            .contains("category", "music")
-                            .findAll();
-                }
-                else if (tab.getTag().equals("Technology & Science"))
-                {
-                    mCategoryTitleTextView.setText("Technology & Science");
-                    tabRealmResults = mRealm.where(RealmSource.class)
-                            .contains("category", "technology")
-                            .or()
-                            .contains("category", "science-and-nature")
-                            .findAll();
-                }
-                else if (tab.getTag().equals("Sports"))
-                {
-                    mCategoryTitleTextView.setText("Sports");
-                    tabRealmResults = mRealm.where(RealmSource.class)
-                            .contains("category", "sport")
-                            .findAll();
-                }
-
-                mSourceAdapter.resetAnimation();
-                mSourceAdapter.updateData(tabRealmResults);
-
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-
-            }
-        });
-
-
-        //Get array resources for category titles and drawables
-        /*
-
-
-        TypedArray typedTitleArray = getResources().obtainTypedArray(R.array.category_title_array);
-        String [] catTitles = new String[typedTitleArray.length()];
-        for (int i = 0; i < typedTitleArray.length(); i++)
-        {
-            catTitles[i] = typedTitleArray.getString(i);
-        }
-        typedTitleArray.recycle();
-        TypedArray typedDrawableArray = getResources().obtainTypedArray(R.array.category_drawable_array);
-        Drawable [] catDrawables = new Drawable[typedDrawableArray.length()];
-        for (int i = 0; i < typedDrawableArray.length(); i++)
-        {
-            catDrawables[i] = typedDrawableArray.getDrawable(i);
-        }
-        typedDrawableArray.recycle();
-        mCategoryAdapter = new CategoryAdapter(catTitles, catDrawables);
-        mCategoryRecyclerView = (RecyclerView) findViewById(R.id.category_recyclerview);
-        LinearLayoutManager lm = new LinearLayoutManager(this);
-        lm.setOrientation(LinearLayoutManager.HORIZONTAL);
-        mCategoryRecyclerView.setHasFixedSize(true);
-        mCategoryRecyclerView.setLayoutManager(lm);
-        mCategoryItemClickListener = new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
-
-            private int mSelectedPosition = -1;
-
-            @Override
-            public void onItemClick(View view, int position) {
-
-                if (mSelectedPosition > -1 || mSelectedPosition != position)
-                {
-
-                    CatViewHolder previousVH = (CatViewHolder)mCategoryRecyclerView.findViewHolderForAdapterPosition(mSelectedPosition);
-
-                    if (previousVH != null)
-                    {
-                        previousVH.mCatImageView.setSelected(false);
-                    }
-
-                }
-
-                mSelectedPosition = position;
-                RealmResults<RealmSource> results = mRealm.where(RealmSource.class).contains("category", categoryParamNames[position]).findAll();
-                mSourceAdapter.resetAnimation();
-                mSourceAdapter.updateData(results);
-
-
-            }
-        });
-        mCategoryRecyclerView.addOnItemTouchListener(mCategoryItemClickListener);
-        mCategoryRecyclerView.setAdapter(mCategoryAdapter);
-        SnapHelper snapHelper = new StartSnapHelper();
-        snapHelper.attachToRecyclerView(mCategoryRecyclerView);
-        */
-
-
-
+        mSourcesRecyclerView = (RecyclerView) findViewById(R.id.source_recyclerview);
 
         Log.d(LOG_TAG, "onCreate");
 
@@ -220,14 +66,11 @@ public class MainActivity extends AppCompatActivity {
                 .Builder()
                 .deleteRealmIfMigrationNeeded()
                 .build();
-
+        mRealm = Realm.getInstance(config);
 
         mNewsService = ApiUtils.getNewsService();
-
-        mCurrentCategoryTab = "All";
-        mSourcesRecyclerView = (RecyclerView) findViewById(R.id.source_recyclerview);
+        setupTabLayout();
         final GridLayoutManager gm = new GridLayoutManager(this, 4);
-
 
         //Update animation item count to avoid glitchy scroll animation.
         mSourcesRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -239,94 +82,140 @@ public class MainActivity extends AppCompatActivity {
                 if ( lastItemPosition > 0)
                 {
                     mSourceAdapter.countLimit = ++lastItemPosition;
+                    Log.d(LOG_TAG, "OnGlobalLayoutListener sources recyclerview, count limit: " + mSourceAdapter.countLimit);
                 }
 
             }
         });
 
-
-
         mSourcesRecyclerView.setHasFixedSize(true);
         mSourcesRecyclerView.setLayoutManager(gm);
 
+        mCategoryTabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
+        if (savedInstanceState != null)
+        {
+            mCurrentCategoryTab = savedInstanceState.getString(STATE_CURRENT_CATEGORY_TAB);
+            mCurrentCategoryTabPosition = savedInstanceState.getInt(STATE_CURRENT_CATEGORY_TAB_POSITION);
+            mCategoryTabLayout.getTabAt(mCurrentCategoryTabPosition).select();
+            mSourcesRecyclerView.getLayoutManager().onRestoreInstanceState(savedInstanceState.getParcelable(STATE_SCROLL));
+
+            RealmResults<RealmSource> results = ApiUtils.getRealmResultsFromTab(mRealm, mCurrentCategoryTab);
+            mSourceAdapter = new SourceAdapter(MainActivity.this, results, true);
+        }
+        else{
+            RealmResults<RealmSource> results = mRealm.where(RealmSource.class).findAllAsync();
+            mSourceAdapter = new SourceAdapter(MainActivity.this, results, true);
+        }
 
 
-        mRealm = Realm.getInstance(config);
 
-
-
-        RealmResults<RealmSource> results = mRealm.where(RealmSource.class).findAllAsync();
-        mSourceAdapter = new SourceAdapter(MainActivity.this, results, true);
         int offset = getResources().getDimensionPixelOffset(R.dimen.item_offset);
-
-
-
-
         ItemOffsetDecoration itemDecoration = new ItemOffsetDecoration(offset);
         mSourcesRecyclerView.addItemDecoration(itemDecoration);
 
+
+
         mSourcesRecyclerView.setAdapter(mSourceAdapter);
 
-
-
-
+        /*
         mSourcesRecyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, new RecyclerItemClickListener.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
                 final Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
 
-                //ImageView mSourceImageView = (ImageView) view.findViewById(R.id.source_item_imageview);
-
-
-
                 RealmSource newsSource = mSourceAdapter.getItem(position);
                 i.putExtra(ArticleListActivity.EXTRA_INITIAL_SOURCE_ID, newsSource.id);
                 i.putExtra(ArticleListActivity.EXTRA_SOURCE_CATEGORY, mCurrentCategoryTab);
+                i.putExtra(ArticleListActivity.EXTRA_INITIAL_SELECTED_SOURCE_POSITION, position);
+
+
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
                 {
-                    /*
-                    int cx = mSourcesRecyclerView.getWidth() / 2;
-                    int cy = mSourcesRecyclerView.getHeight() / 2;
-                    int vx = (int)view.getX() + (view.getWidth()/2);
-                    int vy = (int)view.getY() + (view.getWidth()/2);
 
-                    float initialRadius = (float) Math.hypot(cx, cy);
-                    Animator animCircle = ViewAnimationUtils.createCircularReveal(mSourcesRecyclerView, vx, vy, initialRadius, 0);
-                    animCircle.setDuration(300);
+                    View decorView = getWindow().getDecorView();
+                    View statusBar = decorView.findViewById(android.R.id.statusBarBackground);
+                    View navBar = decorView.findViewById(android.R.id.navigationBarBackground);
 
+                    View sourceImageView = view.findViewById(R.id.source_item_imageview);
 
-                    AnimationSet animSet = new AnimationSet(false);
+                    if (sourceImageView == null)
+                    {
+                        Log.d(LOG_TAG, "sourceImageView is null!");
+                    }
 
-                    animCircle.addListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            super.onAnimationEnd(animation);
-                            mSourcesRecyclerView.setVisibility(View.INVISIBLE);
-                            startActivity(i);
-                        }
-                    });
-
-                    animCircle.start();
-                    */
-
-                    ImageView sourceImageView = (ImageView)view.findViewById(R.id.source_item_imageview);
-                    //CardView sourceCardView = (CardView)view.findViewById(R.id.source_item_cardview);
-
-                    //Pair<View, String> p1 = Pair.create((View)sourceImageView, newsSource.id);
-                    //Pair<View, String> p2 = Pair.create((View)sourceCardView, newsSource.name);
+                    Log.d(LOG_TAG, "sourceImageView transition name: " + sourceImageView.getTransitionName());
 
 
-                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, sourceImageView, newsSource.id);
-                    //ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, p1, p2);
-                    startActivityForResult(i, ArticleListActivity.RESULT_CODE, options.toBundle());
+                    Pair<View, String> sourcePair = Pair.create(sourceImageView, newsSource.id);
+                    Pair<View, String> statusPair = Pair.create(statusBar, statusBar.getTransitionName());
+                    Pair<View, String> navPair = Pair.create(navBar, navBar.getTransitionName());
+
+                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, sourcePair, statusPair,navPair);
+                    startActivityForResult(i, ArticleListActivity.REQUEST_CODE, options.toBundle());
 
                 }else{
+                    //ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, sourcePair);
+                    //startActivityForResult(i, ArticleListActivity.REQUEST_CODE, options.toBundle());
                     startActivity(i);
                 }
 
             }
         }));
+
+        */
+
+
+        mSourceAdapter.setOnSourceItemClickListener(new SourceAdapter.OnSourceItemClickListener() {
+            @Override
+            public void onClick(ImageView v, int position) {
+                final Intent i = new Intent(MainActivity.this, ArticleListActivity.class);
+
+                RealmSource newsSource = mSourceAdapter.getItem(position);
+                i.putExtra(ArticleListActivity.EXTRA_INITIAL_SOURCE_ID, newsSource.id);
+                i.putExtra(ArticleListActivity.EXTRA_SOURCE_CATEGORY, mCurrentCategoryTab);
+                i.putExtra(ArticleListActivity.EXTRA_INITIAL_SELECTED_SOURCE_POSITION, position);
+
+
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                {
+
+                    View decorView = getWindow().getDecorView();
+                    View statusBar = decorView.findViewById(android.R.id.statusBarBackground);
+                    View navBar = decorView.findViewById(android.R.id.navigationBarBackground);
+
+
+
+                    if (v == null)
+                    {
+                        Log.d(LOG_TAG, "v is null!");
+                    }
+
+                    Log.d(LOG_TAG, "v transition name: " + v.getTransitionName() + ", position: " + position);
+
+
+                    Pair<View, String> sourcePair = Pair.create((View)v, v.getTransitionName());
+                    Pair<View, String> statusPair = Pair.create(statusBar, statusBar.getTransitionName());
+                    ActivityOptions options;
+                    if (navBar == null)
+                    {
+                        options = ActivityOptions.makeSceneTransitionAnimation(MainActivity.this, statusPair, sourcePair);
+                    }
+                    else{
+                        Pair<View, String> navPair = Pair.create(navBar, navBar.getTransitionName());
+                        options = ActivityOptions.makeSceneTransitionAnimation(MainActivity.this, statusPair,navPair, sourcePair);
+                    }
+
+                    startActivityForResult(i, ArticleListActivity.REQUEST_CODE, options.toBundle());
+
+                }else{
+                    //ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(MainActivity.this, sourcePair);
+                    //startActivityForResult(i, ArticleListActivity.REQUEST_CODE, options.toBundle());
+                    startActivity(i);
+                }
+            }
+        });
 
 
 
@@ -371,9 +260,7 @@ public class MainActivity extends AppCompatActivity {
                                         realmSource.sortBysAvailable =  newRealmList;
                                     }
 
-                                    //RealmSource managedRealmSource = realm.copyToRealmOrUpdate(realmSource);
                                     realm.insertOrUpdate(realmSource);
-                                    //realm.copyToRealmOrUpdate(realmSource);
                                 }
                             }
                         });
@@ -403,11 +290,55 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+    @Override
+    public void onActivityReenter(int resultCode, Intent data) {
+        Log.d(LOG_TAG, "onActivityReenter");
 
-        //CardView cv = (CardView) findViewById(R.id.source_item_cardview);
-        //TextView title = (TextView) findViewById(R.id.source_item_textview);
-        //cv.setCardBackgroundColor(getResources().getColor(R.color.colorTitleA));
-        //title.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "Roboto-Regular.ttf"));
+        if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP )
+        {
+            postponeEnterTransition();
+
+            mSourcesRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    mSourcesRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                    mSourcesRecyclerView.requestLayout();
+
+                    startPostponedEnterTransition();
+                    return false;
+                }
+            });
+        }
+
+        int exitCurrentPosition = data.getExtras().getInt(ArticleListActivity.EXTRA_EXIT_SELECTED_SOURCE_POSITION);
+        mSourcesRecyclerView.scrollToPosition(exitCurrentPosition);
+
+        SourceAdapter.SourceViewHolder vh = (SourceAdapter.SourceViewHolder)mSourcesRecyclerView.findViewHolderForAdapterPosition(exitCurrentPosition);
+
+        if (vh == null || data == null)
+        {
+            Log.w(LOG_TAG, "onActivityReenter: Holder is null, remapping cancelled.");
+            return;
+        }
+
+
+        mSharedElementCallback = new SourceSharedElementCallback();
+        mSharedElementCallback.setImageView(vh.mSourceImageView);
+        setExitSharedElementCallback(mSharedElementCallback);
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(LOG_TAG, "onActivityResult");
+
+        if (data != null)
+        {
+            int exitCurrentPosition = data.getExtras().getInt(ArticleListActivity.EXTRA_EXIT_SELECTED_SOURCE_POSITION);
+            mSourcesRecyclerView.scrollToPosition(exitCurrentPosition);
+        }
 
     }
 
@@ -431,104 +362,115 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
-    public class CategoryAdapter extends RecyclerView.Adapter<CatViewHolder> {
-        private String[] mCatTitles;
-        private Drawable[] mCatDrawables;
-        public int mSelectedPosition = 0;
-
-
-        public CategoryAdapter(String[] titles, Drawable[] resourceIds) {
-            mCatTitles = titles;
-            mCatDrawables = resourceIds;
-
-        }
-
-        @Override
-        public CatViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-
-            View view = getLayoutInflater().inflate(R.layout.category_item, parent, false);
-            CatViewHolder vh = new CatViewHolder(view);
-
-
-
-            vh.setOnCatViewHolderClick(new OnCatViewHolderClick() {
-                @Override
-                public void onClick(int pos) {
-                    mSelectedPosition = pos;
-                    notifyDataSetChanged();
-                }
-            });
-
-            return vh;
-        }
-
-        @Override
-        public void onBindViewHolder(CatViewHolder holder, int position) {
-            holder.mCatTextView.setText(mCatTitles[position]);
-            holder.mCatImageView.setImageDrawable(mCatDrawables[position]);
-
-
-            if (mSelectedPosition == position)
-            {
-                holder.mCatImageView.setSelected(true);
-                Log.d(LOG_TAG, "onBindView selected " + position);
-
-            }
-            else{
-                holder.mCatImageView.setSelected(false);
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return mCatTitles.length;
-        }
-    }
-
-    public interface OnCatViewHolderClick
+    @Override
+    public void onSaveInstanceState (Bundle outState)
     {
-        void onClick(int pos);
+        Log.d(LOG_TAG, "onSaveInstanceState");
+
+        outState.putString(STATE_CURRENT_CATEGORY_TAB, mCurrentCategoryTab);
+        outState.putParcelable(STATE_SCROLL, mSourcesRecyclerView.getLayoutManager().onSaveInstanceState());
+        outState.putInt(STATE_CURRENT_CATEGORY_TAB_POSITION, mCurrentCategoryTabPosition);
     }
 
+    private void setupTabLayout()
+    {
+        TabLayout.Tab allTab = mCategoryTabLayout.newTab().setIcon(R.drawable.clear_tab_all).setTag("All");
 
-    public class CatViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+        mCategoryTabLayout.addTab(allTab);
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.clear_tab_general).setTag("General"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.clear_tab_media).setTag("Media"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.clear_tab_tech).setTag("Technology & Science"));
+        mCategoryTabLayout.addTab(mCategoryTabLayout.newTab().setIcon(R.drawable.clear_tab_sports).setTag("Sports"));
 
-        public TextView mCatTextView;
-        public ImageView mCatImageView;
-        public OnCatViewHolderClick mOnCatViewHolderClick;
-
-        public CatViewHolder(View v) {
-
-            super(v);
-
-            v.setClickable(true);
-            v.setOnClickListener(this);
-            v.setSelected(false);
-
-            mCatTextView = (TextView) v.findViewById(R.id.category_title_textview);
-            mCatImageView = (ImageView) v.findViewById(R.id.category_imageview);
+        mCurrentCategoryTab = getString(R.string.cat_tab_all);
 
 
+        mCategoryTitleTextView.setText(getString(R.string.cat_tab_all));
 
-        }
+        TabLayout.OnTabSelectedListener tabSelectedListener = new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
 
-        public void setOnCatViewHolderClick(OnCatViewHolderClick cb){
-            mOnCatViewHolderClick = cb;
-        }
+                RealmResults<RealmSource> tabRealmResults = null;
 
-        @Override
-        public void onClick(View v) {
+                mCurrentCategoryTab = String.valueOf(tab.getTag());
+                mCurrentCategoryTabPosition = tab.getPosition();
 
-            Log.d(LOG_TAG, "onClick " + getLayoutPosition());
-            mCatImageView.setSelected(true);
 
-            if (mOnCatViewHolderClick != null)
-            {
-                mOnCatViewHolderClick.onClick(getLayoutPosition());
+
+                if (tab.getTag().equals(getString(R.string.cat_tab_all)))
+                {
+                    tabRealmResults = mRealm.where(RealmSource.class).findAll();
+                    mCategoryTitleTextView.setText(getString(R.string.cat_tab_all));
+                }
+                else if (tab.getTag().equals(getString(R.string.cat_tab_general)))
+                {
+                    mCategoryTitleTextView.setText(getString(R.string.cat_tab_general));
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "general")
+                            .or()
+                            .contains("category", "politics")
+                            .or()
+                            .contains("category", "business")
+                            .findAll();
+
+                }
+
+                else if (tab.getTag().equals(getString(R.string.cat_tab_media)))
+                {
+                    mCategoryTitleTextView.setText(getString(R.string.cat_tab_media));
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "entertainment")
+                            .or()
+                            .contains("category", "gaming")
+                            .or()
+                            .contains("category", "music")
+                            .findAll();
+                }
+                else if (tab.getTag().equals(getString(R.string.cat_tab_tech)))
+                {
+                    mCategoryTitleTextView.setText(getString(R.string.cat_tab_tech));
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "technology")
+                            .or()
+                            .contains("category", "science-and-nature")
+                            .findAll();
+                }
+                else if (tab.getTag().equals(getString(R.string.cat_tab_sports)))
+                {
+                    mCategoryTitleTextView.setText(getString(R.string.cat_tab_sports));
+                    tabRealmResults = mRealm.where(RealmSource.class)
+                            .contains("category", "sport")
+                            .findAll();
+                }
+
+                if (mSourceAdapter != null)
+                {
+                    Log.d(LOG_TAG, "onTabSelected, update source adapter");
+                    mSourceAdapter.resetAnimation();
+                    mSourceAdapter.updateData(tabRealmResults);
+                }
+
+
             }
 
-        }
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+
+            }
+        };
+        mCategoryTabLayout.addOnTabSelectedListener(tabSelectedListener);
+
+        mCurrentCategoryTabPosition = 0;
+        allTab.select();
+
+
     }
+
+
 }

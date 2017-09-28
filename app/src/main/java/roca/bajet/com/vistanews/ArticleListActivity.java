@@ -1,6 +1,7 @@
 package roca.bajet.com.vistanews;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,21 +14,19 @@ import android.support.v4.view.ViewPager;
 import android.support.v4.view.animation.FastOutSlowInInterpolator;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.Toolbar;
+import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.Spinner;
 
-import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.transition.Transition;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.transitionseverywhere.Fade;
 import com.transitionseverywhere.TransitionManager;
 import com.transitionseverywhere.TransitionSet;
@@ -36,7 +35,6 @@ import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 import roca.bajet.com.vistanews.data.ApiUtils;
-import roca.bajet.com.vistanews.data.NewsService;
 import roca.bajet.com.vistanews.data.RealmSource;
 
 /**
@@ -50,15 +48,15 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     private static final String LOG_TAG = "ArticleListActivity";
 
     private String mSourceId;
+    private String mInitialSourceId;
     private String mCurrentTab;
     private AppBarLayout mAppBarLayout;
     private CollapsingToolbarLayout mCollapsingToolbarLayout;
     private ImageView mArticleListImageView;
     private Toolbar mToolbar;
-    //private RecyclerView mArticleListRecyclerView;
+
     private ImageView mSourceIconImageView;
     private Realm mRealm;
-    private NewsService mNewsService;
     private Context mContext;
 
     private CardView mSourceIconCardView;
@@ -67,82 +65,55 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     private ArticleListPageAdapter mPageAdapter;
 
     private static final int PERCENTAGE_TO_SHOW_IMAGE = 60;
-    public static final int RESULT_CODE = 13;
+    public static final int REQUEST_CODE = 13;
+
+    public static final String EXTRA_EXIT_SELECTED_SOURCE_POSITION = "extra_selected_source_position";
+    public static final String EXTRA_INITIAL_SELECTED_SOURCE_POSITION = "extra_initial_selected_source_position";
+    private static final String STATE_CURRENT_PAGE = "STATE_CURRENT_PAGE";
     private int mMaxScrollSize;
     private boolean mIsImageHidden;
-
+    private SourceSharedElementCallback mSourceSharedElementCallback;
+    private int mInitialSelectedSourcePosition;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article_list_pager);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+            postponeEnterTransition();
+        }else{
+            supportPostponeEnterTransition();
+        }
 
         mContext = getApplicationContext();
-
         mRootView = (CoordinatorLayout)findViewById(R.id.root_coordinatorlayout);
         mAppBarLayout = (AppBarLayout) findViewById(R.id.article_list_appbarlayout);
         mArticleListImageView = (ImageView) findViewById(R.id.article_list_imageview);
-        //mArticleListRecyclerView = (RecyclerView) findViewById(R.id.article_list_recyclerview);
         mViewPager = (ViewPager) findViewById(R.id.article_list_viewpager);
         mSourceIconImageView = (ImageView) findViewById(R.id.source_icon_imageview);
         mCollapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.article_list_collapsingtoolbarlayout);
         mToolbar = (Toolbar) findViewById(R.id.article_list_toolbar);
         mSourceIconCardView = (CardView) findViewById(R.id.source_icon_cardview);
 
+        mInitialSourceId = getIntent().getExtras().getString(EXTRA_INITIAL_SOURCE_ID);
+        mCurrentTab = getIntent().getExtras().getString(EXTRA_SOURCE_CATEGORY);
+        mInitialSelectedSourcePosition = getIntent().getExtras().getInt(EXTRA_INITIAL_SELECTED_SOURCE_POSITION);
 
+        mArticleListImageView.setImageDrawable(ApiUtils.getArticleListBackground(mContext));
 
         final com.transitionseverywhere.Slide slideTransition = new com.transitionseverywhere.Slide(Gravity.TOP);
         slideTransition.setDuration(1000);
         slideTransition.setInterpolator(new FastOutSlowInInterpolator());
         slideTransition.addTarget(mAppBarLayout);
-        slideTransition.addListener(new com.transitionseverywhere.Transition.TransitionListener() {
-            @Override
-            public void onTransitionStart(com.transitionseverywhere.Transition transition) {
 
-            }
-
-            @Override
-            public void onTransitionEnd(com.transitionseverywhere.Transition transition) {
-                //mArticleListRecyclerView.animate().setDuration(1000).alpha(1f);
-                slideTransition.removeListener(this);
-            }
-
-            @Override
-            public void onTransitionCancel(com.transitionseverywhere.Transition transition) {
-
-            }
-
-            @Override
-            public void onTransitionPause(com.transitionseverywhere.Transition transition) {
-
-            }
-
-            @Override
-            public void onTransitionResume(com.transitionseverywhere.Transition transition) {
-
-            }
-        });
-
-
-        //android.transition.TransitionManager.beginDelayedTransition(mAppBarLayout, slideTransitionDown);
-        //android.transition.TransitionManager.beginDelayedTransition(mArticleListRecyclerView, slideTransitionUp);
-        //mAppBarLayout.setVisibility(View.VISIBLE);
-        //mArticleListRecyclerView.setVisibility(View.VISIBLE);
-
-
-        supportPostponeEnterTransition();
 
         setSupportActionBar(mToolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
 
         mAppBarLayout.addOnOffsetChangedListener(this);
-
-
-        mSourceId = getIntent().getExtras().getString(EXTRA_INITIAL_SOURCE_ID);
-        mCurrentTab = getIntent().getExtras().getString(EXTRA_SOURCE_CATEGORY);
-
 
         RealmConfiguration config = new RealmConfiguration
                 .Builder()
@@ -151,17 +122,28 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         mRealm = Realm.getInstance(config);
 
 
-        Log.d(LOG_TAG, "source_id : " + mSourceId);
+        Log.d(LOG_TAG, "source_id : " + mInitialSourceId);
         final RealmResults<RealmSource> realmList = ApiUtils.getRealmResultsFromTab(mRealm, mCurrentTab);
-        final RealmSource source = realmList.where().equalTo("id", mSourceId).findFirst();
+
+
 
         mPageAdapter = new ArticleListPageAdapter(getSupportFragmentManager(), realmList);
         mViewPager.setAdapter(mPageAdapter);
 
-        mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+        if (savedInstanceState != null)
+        {
+
+            mViewPager.setCurrentItem(savedInstanceState.getInt(STATE_CURRENT_PAGE));
+        }else{
+            mViewPager.setCurrentItem(mInitialSelectedSourcePosition);
+        }
+
+
+        mViewPager.setOffscreenPageLimit(1);
+
+        ViewPager.OnPageChangeListener pageChangeListener = new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
             }
 
             @Override
@@ -174,133 +156,138 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
                 Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, source);
                 GlideApp.with(mContext).load(logoUrl).error(placeholder).into(mSourceIconImageView);
 
+
                 mCollapsingToolbarLayout.setTitle(source.name);
+                mSourceId = source.id;
+
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mSourceIconImageView.setTransitionName(mSourceId);
+
+                }
             }
 
             @Override
             public void onPageScrollStateChanged(int state) {
 
             }
-        });
+        };
+
+        mViewPager.addOnPageChangeListener(pageChangeListener);
+        //pageChangeListener.onPageSelected(mInitialSelectedSourcePosition);
+
+        RealmSource source = mPageAdapter.getRealmSourceFromPosition(mInitialSelectedSourcePosition);
+        String logoUrl = ApiUtils.getLogosUrl(source.url);
+
+        Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, source);
+        GlideApp.with(mContext).load(logoUrl).error(placeholder).listener(new RequestListener<Drawable>() {
+            @Override
+            public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                {
+                    startPostponedEnterTransition();
+                }else{
+                    supportStartPostponedEnterTransition();
+                }
+
+                return false;
+            }
+
+            @Override
+            public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                {
+                    mViewPager.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                        @Override
+                        public boolean onPreDraw() {
+                            mViewPager.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                            startPostponedEnterTransition();
+                            return false;
+                        }
+                    });
+
+                }
+
+                else{
+                    final com.transitionseverywhere.Slide slideTransitionUp = new com.transitionseverywhere.Slide(Gravity.BOTTOM);
+                    slideTransitionUp.setDuration(1000);
+                    slideTransitionUp.setInterpolator(new FastOutSlowInInterpolator());
+                    slideTransitionUp.addTarget(mSourceIconImageView);
+
+                    final Fade fadeTransition = new Fade(Fade.IN);
+                    fadeTransition.setDuration(1000);
+                    fadeTransition.setInterpolator(new FastOutSlowInInterpolator());
+
+                    final TransitionSet transitionSet = new TransitionSet();
+                    transitionSet.addTransition(fadeTransition);
+                    transitionSet.addTransition(slideTransitionUp);
+                    transitionSet.addTransition(slideTransition);
+                    transitionSet.setOrdering(TransitionSet.ORDERING_TOGETHER);
+
+                    mRootView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                        @Override
+                        public boolean onPreDraw() {
+                            mRootView.getViewTreeObserver().removeOnPreDrawListener(this);
+
+                            Log.d(LOG_TAG, "OnPreDrawListener " );
+                            supportStartPostponedEnterTransition();
+                            TransitionManager.beginDelayedTransition(mRootView, transitionSet);
+
+
+                            mAppBarLayout.setVisibility(View.VISIBLE);
+                            mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
+                            mArticleListImageView.setVisibility(View.VISIBLE);
+                            return false;
+                        }
+                    });
+                }
+
+
+                return false;
+            }
+        }).into(mSourceIconImageView);
 
         mCollapsingToolbarLayout.setTitle(source.name);
-        final String sourceUrl = ApiUtils.getLogosUrl(source.url);
+        mSourceId = source.id;
 
-        //mArticleListImageView.setAlpha(0f);
-        //mArticleListRecyclerView.setAlpha(0f);
-
-
-        final Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, source);
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
         {
+
+
             mSourceIconImageView.setTransitionName(mSourceId);
+            mSourceSharedElementCallback = new SourceSharedElementCallback();
+            mSourceSharedElementCallback.setImageView(mSourceIconImageView);
 
+            android.transition.TransitionSet enterTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_enter_transition);
+            android.transition.TransitionSet returnTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_return_transition);
+
+
+            setEnterSharedElementCallback(mSourceSharedElementCallback);
+
+            getWindow().setEnterTransition(enterTransition);
+            getWindow().setReturnTransition(returnTransition);
+
+            /*
+            mAppBarLayout.setVisibility(View.VISIBLE);
+            mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
+            mArticleListImageView.setVisibility(View.VISIBLE);
+            */
         }
+        else{
+            mAppBarLayout.setVisibility(View.INVISIBLE);
+            mCollapsingToolbarLayout.setVisibility(View.INVISIBLE);
+            mArticleListImageView.setVisibility(View.INVISIBLE);
+        }
+    }
 
+    @Override
+    public void onSaveInstanceState (Bundle outState)
+    {
+        Log.d(LOG_TAG, "onSaveInstanceState");
 
-
-        SimpleTarget<Drawable> target = new SimpleTarget<Drawable>() {
-            @Override
-            public void onResourceReady(Drawable resource, Transition<? super Drawable> t) {
-
-                //Log.d(LOG_TAG, "w : " + resource.getIntrinsicWidth() + ", h : " + resource.getIntrinsicHeight());
-
-                ViewCompat.setTransitionName(mSourceIconImageView, source.id);
-
-                mSourceIconImageView.setImageDrawable(resource);
-
-                /*
-                if (resource.getIntrinsicWidth() >= 288 && resource.getIntrinsicHeight() >= 288)
-                {
-                    mSourceIconImageView.setImageDrawable(resource);
-                }
-                else{
-                    mSourceIconImageView.setImageDrawable(placeholder);
-                }
-
-                */
-
-
-
-
-
-                final com.transitionseverywhere.Slide slideTransitionUp = new com.transitionseverywhere.Slide(Gravity.BOTTOM);
-                slideTransitionUp.setDuration(1000);
-                slideTransitionUp.setInterpolator(new FastOutSlowInInterpolator());
-                slideTransitionUp.addTarget(mSourceIconImageView);
-
-                final Fade fadeTransition = new Fade(Fade.IN);
-                fadeTransition.setDuration(1000);
-                fadeTransition.setInterpolator(new FastOutSlowInInterpolator());
-                //fadeTransition.addTarget(mArticleListRecyclerView);
-
-
-                //mArticleListImageView.animate().setDuration(1000).alpha(1f);
-                //transition.removeListener(com.transitionseverywhere.Transition.TransitionListener.this);
-                //getWindow().setEnterTransition(slideTransitionUp);
-
-                //mRootView.getViewTreeObserver().add
-                //supportStartPostponedEnterTransition();
-                final TransitionSet transitionSet = new TransitionSet();
-                transitionSet.addTransition(fadeTransition);
-                transitionSet.addTransition(slideTransitionUp);
-                transitionSet.addTransition(slideTransition);
-                transitionSet.setOrdering(TransitionSet.ORDERING_TOGETHER);
-                //supportStartPostponedEnterTransition();
-
-                //TransitionManager.beginDelayedTransition(mRootView, transitionSet);
-
-                mRootView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-                    @Override
-                    public boolean onPreDraw() {
-                        mRootView.getViewTreeObserver().removeOnPreDrawListener(this);
-
-                        Log.d(LOG_TAG, "OnPreDrawListener " );
-                        supportStartPostponedEnterTransition();
-                        TransitionManager.beginDelayedTransition(mRootView, transitionSet);
-
-                        //TransitionManager.beginDelayedTransition(mRootView, slideTransition);
-                        //TransitionManager.beginDelayedTransition(mRootView, fadeTransition);
-                        mAppBarLayout.setVisibility(View.VISIBLE);
-                        //mArticleListRecyclerView.setVisibility(View.VISIBLE);
-                        mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
-                        mArticleListImageView.setVisibility(View.VISIBLE);
-                        return false;
-                    }
-                });
-
-
-            }
-
-            @Override
-            public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                supportStartPostponedEnterTransition();
-            }
-
-
-        };
-
-
-        GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(target);
-
-
-        //com.transitionseverywhere.TransitionManager.beginDelayedTransition(mAppBarLayout, slideTransition);
-        //mAppBarLayout.setVisibility(View.VISIBLE);
-
-        //final com.transitionseverywhere.Slide slideTransition = new com.transitionseverywhere.Slide(Gravity.TOP);
-
-
-
-
-        //mArticleListRecyclerView.setAdapter(mArticleAdapter);
-        LinearLayoutManager lm = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        //mArticleListRecyclerView.setLayoutManager(lm);
-
-        //mArticleListRecyclerView.addItemDecoration(new DividerItemDecoration(this, lm.getOrientation()));
-
-
-
+        outState.putInt(STATE_CURRENT_PAGE, mViewPager.getCurrentItem());
 
     }
 
@@ -308,8 +295,6 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     public void onDestroy()
     {
         super.onDestroy();
-
-
 
         if(mRealm != null)
         {
@@ -326,76 +311,62 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         super.onPause();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
 
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_article_list, menu);
-
-        MenuItem menuItemSortBy = menu.findItem(R.id.action_sort_by);
-        Spinner sortBySpinner = (Spinner)menuItemSortBy.getActionView();
-
-        ArrayAdapter<CharSequence> adapter = new ArrayAdapter<CharSequence>(mContext, android.R.layout.simple_spinner_item);
-
-
-        return true;
-    }
 
     @Override
     public void onBackPressed() {
 
-
-        Log.d(LOG_TAG, "onBackPressed() Exiting ");
-        //super.onBackPressed();
+        Log.d(LOG_TAG, "onBackPressed()");
 
 
-        if (mIsImageHidden && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+
+        if (mIsImageHidden)
         {
-
-
-            getWindow().setSharedElementReturnTransition(null);
-            //getWindow().setSharedElementReenterTransition(null);
-            //getWindow().setSharedElementExitTransition(null);
-
-            ViewCompat.setTransitionName(mSourceIconImageView, null);
+            Log.d(LOG_TAG, "onBackPressed() finish no transition ");
+            setActivityResult();
             finish();
         }
-        else{
-            supportFinishAfterTransition();
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+            Log.d(LOG_TAG, "onBackPressed() finish with transition ");
+
+            setActivityResult();
+            finishAfterTransition();
         }
 
-
+        else{
+            setActivityResult();
+            supportFinishAfterTransition();
+        }
     }
 
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.d(LOG_TAG, "onOptionsItemSelected() Exiting ");
+        Log.d(LOG_TAG, "onOptionsItemSelected()");
         switch (item.getItemId()) {
-            // Respond to the action bar's Up/Home button
+
             case android.R.id.home:
-                //NavUtils.navigateUpFromSameTask(this);
-                //Log.d(LOG_TAG, "onOptionsItemSelected() Exiting ");
 
-                if (mIsImageHidden && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+
+                if (mIsImageHidden)
                 {
-                    getWindow().setSharedElementReturnTransition(null);
-
-                    ViewCompat.setTransitionName(mSourceIconImageView, null);
+                    Log.d(LOG_TAG, "home navigation, finish no transition ");
                     finish();
                 }
+                else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+                    Log.d(LOG_TAG, "home navigation, finish with transition ");
+                    setActivityResult();
+                    finishAfterTransition();
+
+                }
                 else{
+                    Log.d(LOG_TAG, "home navigation, finish with support transition");
+                    setActivityResult();
                     supportFinishAfterTransition();
                 }
 
-                //overridePendingTransition(0,0);
-                //finish();
-
                 return true;
 
-            case R.id.action_sort_by:
-
-                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -427,4 +398,10 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     }
 
 
+    private void setActivityResult() {
+
+        Intent intent = new Intent();
+        intent.putExtra(EXTRA_EXIT_SELECTED_SOURCE_POSITION, mViewPager.getCurrentItem());
+        setResult(RESULT_OK, intent);
+    }
 }

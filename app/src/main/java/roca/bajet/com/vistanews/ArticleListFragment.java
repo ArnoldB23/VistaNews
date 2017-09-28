@@ -2,6 +2,7 @@ package roca.bajet.com.vistanews;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -13,7 +14,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -42,6 +49,7 @@ public class ArticleListFragment extends Fragment {
 
     public static final String ARG_SOURCE_ID = "ARG_SOURCE_ID";
     private static final String LOG_TAG = "ArticleListFragment";
+    private static final String STATE_SCROLL = "STATE_SCROLL";
 
     private ArticleAdapter mArticleAdapter;
     private Realm mRealm;
@@ -49,6 +57,7 @@ public class ArticleListFragment extends Fragment {
     private Context mContext;
     private String mSourceId;
     private RecyclerView mArticleListRecyclerView;
+
 
     public static ArticleListFragment newInstance(String sourceId) {
         Bundle args = new Bundle();
@@ -59,14 +68,17 @@ public class ArticleListFragment extends Fragment {
     }
 
 
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, final Bundle savedInstanceState){
+
+
 
         View rootView = inflater.inflate(R.layout.fragment_article_list_pager, container, false);
 
-        mContext = getActivity();
+        mContext = getActivity().getApplicationContext();
         mSourceId = getArguments().getString(ARG_SOURCE_ID);
+
+        Log.d(LOG_TAG, "onCreateView, source: " + mSourceId);
 
         RealmConfiguration config = new RealmConfiguration
                 .Builder()
@@ -79,11 +91,13 @@ public class ArticleListFragment extends Fragment {
 
         mArticleListRecyclerView = (RecyclerView) rootView.findViewById(R.id.page_recyclerview);
 
-        mArticleListRecyclerView.setAdapter(mArticleAdapter);
+
         LinearLayoutManager lm = new LinearLayoutManager(mContext, LinearLayoutManager.VERTICAL, false);
         mArticleListRecyclerView.setLayoutManager(lm);
 
-        mArticleListRecyclerView.addItemDecoration(new DividerItemDecoration(mContext, lm.getOrientation()));
+        DividerItemDecoration itemDecoration = new DividerItemDecoration(mContext, lm.getOrientation());
+
+        mArticleListRecyclerView.addItemDecoration(itemDecoration);
 
         mNewsService = ApiUtils.getNewsService();
         mNewsService.getArticle(mSourceId,BuildConfig.NEWS_API_KEY,"").enqueue(new Callback<GetArticleResponse>() {
@@ -93,7 +107,6 @@ public class ArticleListFragment extends Fragment {
                 if (response.isSuccessful())
                 {
                     final Response<GetArticleResponse> finalResponse = response;
-                    //final RealmResults<RealmArticle> currentArticles = mRealm.where(RealmArticle.class).equalTo("sourceId", mSourceId).findAll();
 
                     try {
                         mRealm.executeTransaction(new Realm.Transaction() {
@@ -113,8 +126,6 @@ public class ArticleListFragment extends Fragment {
                                     realmArticle.publishedAt = article.publishedAt;
                                     realmArticle.sourceId = mSourceId;
 
-                                    Log.d(LOG_TAG, "response: " + article.title + "\n" + article.url);
-                                    //switch ()
                                     realmArticle.topRank = count;
                                     count++;
 
@@ -132,24 +143,72 @@ public class ArticleListFragment extends Fragment {
                     }
 
                     RealmResults<RealmArticle> articles = mRealm.where(RealmArticle.class).equalTo("sourceId", mSourceId).findAll();
-                    //Log.d(LOG_TAG, "articles: " + articles.size());
                     mArticleAdapter.updateData(articles);
-
                 }
                 else{
                     Log.d(LOG_TAG, "Failed to fetch articles. " + response.message());
+                }
+
+                mArticleListRecyclerView.setAdapter(mArticleAdapter);
+
+                if (savedInstanceState != null)
+                {
+                    mArticleListRecyclerView.getLayoutManager().onRestoreInstanceState(savedInstanceState.getParcelable(STATE_SCROLL));
                 }
             }
 
             @Override
             public void onFailure(Call<GetArticleResponse> call, Throwable t) {
+                mArticleListRecyclerView.setAdapter(mArticleAdapter);
 
+                if (savedInstanceState != null)
+                {
+                    mArticleListRecyclerView.getLayoutManager().onRestoreInstanceState(savedInstanceState.getParcelable(STATE_SCROLL));
+                }
             }
         });
 
 
 
         return rootView;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState)
+    {
+        super.onSaveInstanceState(savedInstanceState);
+
+        savedInstanceState.putParcelable(STATE_SCROLL, mArticleListRecyclerView.getLayoutManager().onSaveInstanceState());
+    }
+
+    @Override
+    public void onDestroy()
+    {
+        super.onDestroy();
+
+
+        /*
+        GlideApp.get(mContext).clearMemory();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                GlideApp.get(mContext).clearDiskCache();
+            }
+        }).start();
+
+        Log.d(LOG_TAG, "onDestroy sourceId: " + mSourceId);
+
+        mArticleListRecyclerView.setAdapter(null);
+        mArticleListRecyclerView = null;
+        mArticleAdapter = null;
+        mNewsService = null;
+        mContext = null;
+        mRealm = null;
+        mSourceId = null;
+        */
+
+
     }
 
     private String formatDateString(String publishedAt)
@@ -165,8 +224,6 @@ public class ArticleListFragment extends Fragment {
             long duration = now.getTime() - date.getTime();
 
             long diffInHours = TimeUnit.MILLISECONDS.toHours(duration);
-
-            Log.d(LOG_TAG, "formatDateString, diffInHours " + diffInHours);
 
             String elapsedTime = publishedAt;
 
@@ -224,14 +281,27 @@ public class ArticleListFragment extends Fragment {
         }
 
         @Override
-        public void onBindViewHolder(ArticleViewHolder holder, int position) {
+        public void onBindViewHolder(final ArticleViewHolder holder, int position) {
 
             RealmArticle realmArticle = getItem(position);
             holder.mTitleTextView.setText(realmArticle.title);
             holder.mDateTextView.setText(formatDateString(realmArticle.publishedAt));
             holder.mArticleUrl = realmArticle.url;
 
-            GlideApp.with(mContext).load(realmArticle.urlToImage).into(holder.mArticleImageView);
+            GlideApp.with(mContext).load(realmArticle.urlToImage).error(R.drawable.loading_error).listener(new RequestListener<Drawable>() {
+                @Override
+                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                    holder.mProgressBar.setVisibility(View.INVISIBLE);
+                    return false;
+                }
+
+                @Override
+                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                    holder.mProgressBar.setVisibility(View.INVISIBLE);
+                    return false;
+                }
+            }).into(holder.mArticleImageView);
+
             Log.d(LOG_TAG, "onBindViewHolder, " + realmArticle.urlToImage);
 
         }
@@ -243,6 +313,7 @@ public class ArticleListFragment extends Fragment {
         public TextView mTitleTextView;
         public TextView mDateTextView;
         public String mArticleUrl;
+        public ProgressBar mProgressBar;
 
 
         public ArticleViewHolder (View v)
@@ -251,9 +322,10 @@ public class ArticleListFragment extends Fragment {
             v.setOnClickListener(this);
             v.setClickable(true);
 
+
             mArticleImageView = (ImageView) v.findViewById(R.id.article_item_imageview);
             mTitleTextView = (TextView) v.findViewById(R.id.article_item_title);
-
+            mProgressBar = (ProgressBar) v.findViewById(R.id.article_item_progressbar);
             mDateTextView = (TextView) v.findViewById(R.id.article_item_date);
         }
 

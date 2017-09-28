@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipToPadding="false"
-    tools:context="roca.bajet.com.vistanews.MainActivity">
+    tools:context="roca.bajet.com.vistanews.MainActivity"
+    android:background="@android:color/background_light">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -21,7 +22,6 @@
             app:title="@string/app_name"
             style="@style/TextAppearance.AppCompat.Headline"
             app:titleTextColor="@color/textColor"
-
             app:layout_scrollFlags="scroll|enterAlways|snap">
         </android.support.v7.widget.Toolbar>
 
@@ -55,9 +55,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="center"
         app:layout_scrollFlags="scroll|snap"
-        android:background="@color/colorMainBackground"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
 
 

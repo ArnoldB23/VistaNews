@@ -7,6 +7,7 @@ import android.support.v4.content.ContextCompat;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Random;
 
 import io.realm.Realm;
 import io.realm.RealmResults;
@@ -30,9 +31,18 @@ public class ApiUtils {
     public static final String NEWS_URL = "https://newsapi.org/";
     public static final String LOGOS_URL = "https://logo.clearbit.com/";
 
+    public static int [] sArticleListBackgrounds = {R.drawable.city_background,
+        R.drawable.city_background_2,
+        R.drawable.city_background_fall,
+        R.drawable.city_background_sea,
+        R.drawable.city_background_sunset};
+
+    public static int sBackgroundPosition = new Random().nextInt(sArticleListBackgrounds.length);
+
     public static NewsService getNewsService() {
         return RetrofitClient.getClient(NEWS_URL).create(NewsService.class);
     }
+
 
     public static String getDomainName(String url) throws URISyntaxException {
         URI uri = new URI(url);
@@ -111,6 +121,15 @@ public class ApiUtils {
         return tabRealmResults;
     }
 
+    public static Drawable getArticleListBackground(Context c)
+    {
+        Drawable randomBackgroundDrawable = ContextCompat.getDrawable(c, sArticleListBackgrounds[sBackgroundPosition]);
+
+        sBackgroundPosition = (sBackgroundPosition + 1)%sArticleListBackgrounds.length;
+
+        return randomBackgroundDrawable;
+    }
+
     public static Drawable getCategoryDrawableFromRealSource(Context c, RealmSource source)
     {
         Drawable catDrawable = null;
@@ -118,34 +137,34 @@ public class ApiUtils {
         switch(source.category)
         {
             case CAT_BUSINESS:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_business);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_general);
                 break;
             case CAT_ENTERTAINMENT:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_entertainment);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_media);
                 break;
             case CAT_GAMING:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_gaming);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_media);
                 break;
             case CAT_GENERAL:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_general);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_general);
                 break;
             case CAT_MUSIC:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_music);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_media);
                 break;
             case CAT_POLITICS:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_politics);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_general);
                 break;
             case CAT_SCIENCE:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_science);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_tech);
                 break;
             case CAT_SPORTS:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_sports);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_sports);
                 break;
             case CAT_TECH:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tech);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_tech);
                 break;
             default:
-                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_all);
+                catDrawable = ContextCompat.getDrawable(c, R.drawable.cat_tab_all);
         }
 
         return catDrawable;

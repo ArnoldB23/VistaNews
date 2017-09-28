@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.Nullable;
-import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -14,8 +13,6 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.Interpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.bumptech.glide.Glide;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmRecyclerViewAdapter;
@@ -34,19 +31,17 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     private float offset = 300f;
     public int countLimit = 20;
     private int count = 0;
+    private OnSourceItemClickListener mOnSourceItemClickListener;
+    private boolean isAnimationEnabled = false;
 
-    public OnSourceViewHolderClick mOnSourceViewHolderClick;
-
-
-    public interface OnSourceViewHolderClick{
-        void onClick(SourceViewHolder viewHolder);
+    public interface OnSourceItemClickListener{
+        void onClick(ImageView v, int position);
     }
 
 
     public SourceAdapter(Context c, @Nullable OrderedRealmCollection<RealmSource> data, boolean autoUpdate)
     {
         super(data,autoUpdate);
-
         mContext = c;
     }
 
@@ -57,59 +52,45 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
         View itemView = LayoutInflater.from(mContext).inflate(R.layout.source_item, parent, false);
         SourceViewHolder vh = new SourceViewHolder(itemView);
-        //Log.d(LOG_TAG, "onCreateViewHolder ");
+
         return vh;
     }
 
     @Override
-    public void onBindViewHolder(final SourceViewHolder holder, int position) {
+    public void onBindViewHolder( SourceViewHolder holder, int position) {
 
         final RealmSource realmSource = getItem(position);
         final Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, realmSource);
 
         String sourceUrl = ApiUtils.getLogosUrl(realmSource.url);
 
-        //Log.d(LOG_TAG, "onBindViewHolder, drawable : " + placeholder + ", url : " + sourceUrl);
-        Glide.with(mContext).load(sourceUrl).into(holder.mSourceImageView).onLoadFailed(placeholder);
+        GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(holder.mSourceImageView);
 
-        /*
-        GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(new SimpleTarget<Drawable>() {
-            @Override
-            public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
-
-                //Log.d(LOG_TAG, "w : " + resource.getIntrinsicWidth() + ", h : " + resource.getIntrinsicHeight());
-
-                //ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
-
-                if (resource.getIntrinsicWidth() >= 288 && resource.getIntrinsicHeight() >= 288)
-                {
-                    holder.mSourceImageView.setImageDrawable(resource);
-                }
-                else{
-                    holder.mSourceImageView.setImageDrawable(placeholder);
-                }
-            }
-        });
-        */
-
-        ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            holder.mSourceImageView.setTransitionName(realmSource.id);
+        //ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
         holder.mSourceTitleTextView.setText(realmSource.name);
 
-        setAnimation(holder.itemView, position);
+        if (isAnimationEnabled)
+        {
+            setAnimation(holder.itemView, position);
+        }
+
     }
+
 
     public void resetAnimation()
     {
         lastPosition = -1;
         offset = 300f;
         count = 0;
+        isAnimationEnabled = true;
     }
 
     private void setAnimation(View view, int position)
     {
         if (position > lastPosition && count < countLimit)
         {
-            //Log.d(LOG_TAG, "animate offeset: " + offset + ", pos: " + position);
             Interpolator interpolator;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             {
@@ -126,7 +107,7 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
                     .translationY(0f)
                     .alpha(1f)
                     .setInterpolator(interpolator)
-                    .setDuration(500L)
+                    .setDuration(225L)
                     .start();
 
             lastPosition = position;
@@ -142,8 +123,13 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
         }
     }
 
+    public void setOnSourceItemClickListener(OnSourceItemClickListener clickListener)
+    {
+        mOnSourceItemClickListener = clickListener;
+    }
 
-    public class SourceViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+
+    public class SourceViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
         public TextView mSourceTitleTextView;
         public ImageView mSourceImageView;
@@ -160,22 +146,12 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
             v.setOnClickListener(this);
         }
 
+
         @Override
         public void onClick(View v) {
-            /*
-            Intent i = new Intent(mContext, ArticleListActivity.class);
-
-            RealmSource newsSource = getItem(getAdapterPosition());
-            i.putExtra(ArticleListActivity.EXTRA_SOURCE_ID, newsSource.id);
-
-            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation((Activity)mContext, mSourceImageView, newsSource.id);
-            mContext.startActivity(i, options.toBundle());
-
-            */
-
-            if (mOnSourceViewHolderClick != null)
+            if (mOnSourceItemClickListener != null)
             {
-                mOnSourceViewHolderClick.onClick(this);
+                mOnSourceItemClickListener.onClick(mSourceImageView, getAdapterPosition());
             }
         }
     }
