@@ -57,7 +57,7 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
     }
 
     @Override
-    public void onBindViewHolder( SourceViewHolder holder, int position) {
+    public void onBindViewHolder(final SourceViewHolder holder, final int position) {
 
         final RealmSource realmSource = getItem(position);
         final Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, realmSource);
@@ -67,7 +67,13 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
         GlideApp.with(mContext).load(sourceUrl).error(placeholder).into(holder.mSourceImageView);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
             holder.mSourceImageView.setTransitionName(realmSource.id);
+            //Log.d(LOG_TAG, "source id: " + realmSource.id + ", position: " + position);
+
+
+        }
+
         //ViewCompat.setTransitionName(holder.mSourceImageView, realmSource.id);
         holder.mSourceTitleTextView.setText(realmSource.name);
 
@@ -149,10 +155,12 @@ public class SourceAdapter extends RealmRecyclerViewAdapter<RealmSource, SourceA
 
         @Override
         public void onClick(View v) {
+
             if (mOnSourceItemClickListener != null)
             {
                 mOnSourceItemClickListener.onClick(mSourceImageView, getAdapterPosition());
             }
+
         }
     }
 }

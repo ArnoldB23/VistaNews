@@ -2,6 +2,7 @@ package roca.bajet.com.vistanews;
 
 import android.app.SharedElementCallback;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 
@@ -16,6 +17,7 @@ import java.util.Map;
 public class SourceSharedElementCallback extends SharedElementCallback {
 
     private ImageView mImageView;
+    public String LOG_TAG;
 
 
     @Override
@@ -40,6 +42,7 @@ public class SourceSharedElementCallback extends SharedElementCallback {
         List<String> elementsToRemove = new ArrayList<>(names.size());
         for (String name : names) {
             if (name.startsWith("android")) continue;
+            //Log.d(LOG_TAG, "SourceSharedElementCallback, mapObsoleteElements: deleting " + name);
             elementsToRemove.add(name);
 
         }
@@ -73,6 +76,7 @@ public class SourceSharedElementCallback extends SharedElementCallback {
      */
     private void mapSharedElement(List<String> names, Map<String, View> sharedElements, View view) {
 
+        //Log.d(LOG_TAG, "SourceSharedElementCallback, mapSharedElement adding name: " + view.getTransitionName());
         String transitionName = view.getTransitionName();
         names.add(transitionName);
         sharedElements.put(transitionName, view);

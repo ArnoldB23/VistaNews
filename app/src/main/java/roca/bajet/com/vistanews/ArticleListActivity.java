@@ -1,7 +1,11 @@
 package roca.bajet.com.vistanews;
 
+import android.app.Activity;
+import android.app.SharedElementCallback;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,6 +19,7 @@ import android.support.v4.view.animation.FastOutSlowInInterpolator;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
+import android.transition.Transition;
 import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.Gravity;
@@ -35,6 +40,7 @@ import io.realm.Realm;
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 import roca.bajet.com.vistanews.data.ApiUtils;
+import roca.bajet.com.vistanews.data.Article;
 import roca.bajet.com.vistanews.data.RealmSource;
 
 /**
@@ -74,6 +80,38 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
     private boolean mIsImageHidden;
     private SourceSharedElementCallback mSourceSharedElementCallback;
     private int mInitialSelectedSourcePosition;
+
+    private final Transition.TransitionListener sharedExitListener =
+            new Transition.TransitionListener() {
+
+                @Override
+                public void onTransitionStart(Transition transition) {
+
+                }
+
+                @Override
+                public void onTransitionEnd(Transition transition) {
+
+                    SharedElementCallback sharedCb = null;
+                    setExitSharedElementCallback(sharedCb);
+                }
+
+                @Override
+                public void onTransitionCancel(Transition transition) {
+
+                }
+
+                @Override
+                public void onTransitionPause(Transition transition) {
+
+                }
+
+                @Override
+                public void onTransitionResume(Transition transition) {
+
+                }
+            };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -176,6 +214,41 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         //pageChangeListener.onPageSelected(mInitialSelectedSourcePosition);
 
         RealmSource source = mPageAdapter.getRealmSourceFromPosition(mInitialSelectedSourcePosition);
+        mCollapsingToolbarLayout.setTitle(source.name);
+        mSourceId = source.id;
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+
+
+            mSourceIconImageView.setTransitionName(mSourceId);
+            mSourceSharedElementCallback = new SourceSharedElementCallback();
+            mSourceSharedElementCallback.LOG_TAG = LOG_TAG;
+            mSourceSharedElementCallback.setImageView(mSourceIconImageView);
+
+            android.transition.TransitionSet enterTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_enter_transition);
+            android.transition.TransitionSet returnTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_return_transition);
+
+
+            setEnterSharedElementCallback(mSourceSharedElementCallback);
+
+            getWindow().setEnterTransition(enterTransition);
+            getWindow().setReturnTransition(returnTransition);
+            getWindow().getSharedElementExitTransition().addListener(sharedExitListener);
+
+            /*
+            mAppBarLayout.setVisibility(View.VISIBLE);
+            mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
+            mArticleListImageView.setVisibility(View.VISIBLE);
+            */
+        }
+        else{
+            mAppBarLayout.setVisibility(View.INVISIBLE);
+            mCollapsingToolbarLayout.setVisibility(View.INVISIBLE);
+            mArticleListImageView.setVisibility(View.INVISIBLE);
+        }
+
+
         String logoUrl = ApiUtils.getLogosUrl(source.url);
 
         Drawable placeholder = ApiUtils.getCategoryDrawableFromRealSource(mContext, source);
@@ -248,38 +321,10 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
             }
         }).into(mSourceIconImageView);
 
-        mCollapsingToolbarLayout.setTitle(source.name);
-        mSourceId = source.id;
 
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
 
 
-            mSourceIconImageView.setTransitionName(mSourceId);
-            mSourceSharedElementCallback = new SourceSharedElementCallback();
-            mSourceSharedElementCallback.setImageView(mSourceIconImageView);
-
-            android.transition.TransitionSet enterTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_enter_transition);
-            android.transition.TransitionSet returnTransition = (android.transition.TransitionSet) TransitionInflater.from(mContext).inflateTransition(R.transition.article_list_activity_return_transition);
-
-
-            setEnterSharedElementCallback(mSourceSharedElementCallback);
-
-            getWindow().setEnterTransition(enterTransition);
-            getWindow().setReturnTransition(returnTransition);
-
-            /*
-            mAppBarLayout.setVisibility(View.VISIBLE);
-            mCollapsingToolbarLayout.setVisibility(View.VISIBLE);
-            mArticleListImageView.setVisibility(View.VISIBLE);
-            */
-        }
-        else{
-            mAppBarLayout.setVisibility(View.INVISIBLE);
-            mCollapsingToolbarLayout.setVisibility(View.INVISIBLE);
-            mArticleListImageView.setVisibility(View.INVISIBLE);
-        }
     }
 
     @Override
@@ -329,6 +374,7 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
             Log.d(LOG_TAG, "onBackPressed() finish with transition ");
 
+            getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             setActivityResult();
             finishAfterTransition();
         }
@@ -357,6 +403,7 @@ public class ArticleListActivity extends AppCompatActivity implements AppBarLayo
                     Log.d(LOG_TAG, "home navigation, finish with transition ");
                     setActivityResult();
                     finishAfterTransition();
+                    getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
                 }
                 else{

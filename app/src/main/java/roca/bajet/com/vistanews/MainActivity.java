@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 i.putExtra(ArticleListActivity.EXTRA_SOURCE_CATEGORY, mCurrentCategoryTab);
                 i.putExtra(ArticleListActivity.EXTRA_INITIAL_SELECTED_SOURCE_POSITION, position);
 
-
+                Log.d(LOG_TAG, "OnSourceItemClickListener");
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
                 {
@@ -194,6 +194,10 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.d(LOG_TAG, "v transition name: " + v.getTransitionName() + ", position: " + position);
 
+                    if (mSharedElementCallback != null)
+                    {
+                        mSharedElementCallback.setImageView(v);
+                    }
 
                     Pair<View, String> sourcePair = Pair.create((View)v, v.getTransitionName());
                     Pair<View, String> statusPair = Pair.create(statusBar, statusBar.getTransitionName());
@@ -295,9 +299,30 @@ public class MainActivity extends AppCompatActivity {
     public void onActivityReenter(int resultCode, Intent data) {
         Log.d(LOG_TAG, "onActivityReenter");
 
+        int exitCurrentPosition = data.getExtras().getInt(ArticleListActivity.EXTRA_EXIT_SELECTED_SOURCE_POSITION);
+        mSourcesRecyclerView.scrollToPosition(exitCurrentPosition);
+
         if ( Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP )
         {
             postponeEnterTransition();
+
+            SourceAdapter.SourceViewHolder vh = (SourceAdapter.SourceViewHolder)mSourcesRecyclerView.findViewHolderForAdapterPosition(exitCurrentPosition);
+
+
+            if (vh == null || data == null)
+            {
+                Log.w(LOG_TAG, "onActivityReenter: Holder is null, remapping cancelled.");
+                startPostponedEnterTransition();
+                mSharedElementCallback = null;
+                setExitSharedElementCallback(mSharedElementCallback);
+                return;
+            }
+
+            Log.d(LOG_TAG, "onActivityReenter, vh transitionname: " + vh.mSourceImageView.getTransitionName());
+            mSharedElementCallback = new SourceSharedElementCallback();
+            mSharedElementCallback.LOG_TAG = LOG_TAG;
+            mSharedElementCallback.setImageView(vh.mSourceImageView);
+            setExitSharedElementCallback(mSharedElementCallback);
 
             mSourcesRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
                 @Override
@@ -312,21 +337,9 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        int exitCurrentPosition = data.getExtras().getInt(ArticleListActivity.EXTRA_EXIT_SELECTED_SOURCE_POSITION);
-        mSourcesRecyclerView.scrollToPosition(exitCurrentPosition);
-
-        SourceAdapter.SourceViewHolder vh = (SourceAdapter.SourceViewHolder)mSourcesRecyclerView.findViewHolderForAdapterPosition(exitCurrentPosition);
-
-        if (vh == null || data == null)
-        {
-            Log.w(LOG_TAG, "onActivityReenter: Holder is null, remapping cancelled.");
-            return;
-        }
 
 
-        mSharedElementCallback = new SourceSharedElementCallback();
-        mSharedElementCallback.setImageView(vh.mSourceImageView);
-        setExitSharedElementCallback(mSharedElementCallback);
+
 
     }
 
